@@ -41,7 +41,7 @@ fn simulation_from_size(size: [usize; 2], density: f64) -> ParticleSimulation {
             prevent_particle_ejecting: true,
         },
         50,
-        0.5,
+        5.0,
     );
     particle_simulation.add_random_particles(particle_count);
     particle_simulation
