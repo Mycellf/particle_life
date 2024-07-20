@@ -360,14 +360,19 @@ impl Particle {
         max_distance: f64,
         rng: &mut ThreadRng,
     ) {
+        #[cold]
+        fn randomize_vector(delta_position: &mut [f64; 2], rng: &mut ThreadRng) {
+            delta_position[0] = rng.gen_range(-0.1..=0.1);
+            delta_position[1] = rng.gen_range(-0.1..=0.1);
+        }
+
         let mut delta_position = [
             other.position[0] - self.position[0],
             other.position[1] - self.position[1],
         ];
         // Prevent division by 0 (this has an astronomically low chance to block for some time)
         while delta_position == [0.0, 0.0] {
-            delta_position[0] = rng.gen_range(-0.1..=0.1);
-            delta_position[1] = rng.gen_range(-0.1..=0.1);
+            randomize_vector(&mut delta_position, rng);
         }
 
         let distance_squared = delta_position[0].powi(2) + delta_position[1].powi(2);
