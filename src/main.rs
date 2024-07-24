@@ -152,6 +152,12 @@ async fn main() {
             tick_time = thread_data.tick_time;
         }
 
+        if input::is_key_pressed(KeyCode::F11) {
+            fullscreen ^= true;
+            window::set_fullscreen(fullscreen);
+            input::show_mouse(!fullscreen);
+        }
+
         // Center control
         if input::is_key_pressed(KeyCode::C) {
             center_camera(&mut camera, simulation_buffer.size_vec2());
