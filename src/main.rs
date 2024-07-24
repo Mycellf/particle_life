@@ -19,7 +19,6 @@ pub(crate) mod particle_simulation;
 fn window_conf() -> Conf {
     Conf {
         window_title: "Particle Life".to_string(),
-        fullscreen: true,
         ..Default::default()
     }
 }
@@ -61,8 +60,6 @@ async fn main() {
 
     let simulation_mutex = Arc::new(Mutex::new(simulation));
     let thread_data_mutex = Arc::new(Mutex::new(thread_data));
-
-    input::show_mouse(false);
 
     // Simulation
     let simulation_reference = Arc::clone(&simulation_mutex);
@@ -120,6 +117,7 @@ async fn main() {
     });
 
     let mut debug_mode: u8 = 0;
+    let mut fullscreen = false;
 
     // Rendering and user input
     let simulation_reference = Arc::clone(&simulation_mutex);
