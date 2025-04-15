@@ -132,6 +132,11 @@ impl ParticleSimulation {
             }
         }
 
+        // Clear impulses to make cloning the simulation to the render thread faster
+        for impulses in &mut self.impulses.data {
+            impulses.clear();
+        }
+
         // Organize particles
         for bucket_x in 0..self.buckets.size[0] {
             for bucket_y in 0..self.buckets.size[1] {
