@@ -16,9 +16,9 @@ pub const PARTICLE_RADIUS: f64 = 5.0;
 
 #[rustfmt::skip]
 pub const NEIGHBORS: [[isize; 2]; 8] = [
-    [-1, 1],  [0, 1],  [1, 1],
-    [-1, 0],           [1, 0],
-    [-1, -1], [0, -1], [1, -1],
+    [-1,  1], [ 0,  1], [ 1,  1],
+    [-1,  0],           [ 1,  0],
+    [-1, -1], [ 0, -1], [ 1, -1],
 ];
 
 #[derive(Clone, Debug)]
