@@ -128,18 +128,18 @@ async fn main() {
             panic!("Simulation thread panicked");
         }
 
-        // Camera control
-        update_camera_control(&mut camera, 1.0, 0.1);
-
-        // Setup camera
-        update_camera_aspect_ratio(&mut camera);
-        camera::set_camera(&camera);
-
         // Copy simulation to buffer
         let simulation_buffer = {
             let simulation = simulation_reference.lock().unwrap();
             (*simulation).clone()
         };
+
+        // Camera control
+        update_camera_control(&mut camera, simulation_buffer.size_vec2(), 1.0, 1.1);
+
+        // Setup camera
+        update_camera_aspect_ratio(&mut camera);
+        camera::set_camera(&camera);
 
         // Update thread_data
         let tick_time;
@@ -161,6 +161,7 @@ async fn main() {
             center_camera(&mut camera, simulation_buffer.size_vec2());
         }
 
+        // Debug view control
         if input::is_key_pressed(KeyCode::F3) {
             let mode;
             if input::is_key_down(KeyCode::LeftShift) {
@@ -200,7 +201,12 @@ async fn main() {
     }
 }
 
-fn update_camera_control(camera: &mut Camera2D, pan_speed: f32, zoom_speed: f32) {
+fn update_camera_control(
+    camera: &mut Camera2D,
+    simulation_size: Vec2,
+    pan_speed: f32,
+    zoom_base: f32,
+) {
     let motion = vec2(
         input::is_key_down(KeyCode::D) as u32 as f32 - input::is_key_down(KeyCode::A) as u32 as f32,
         input::is_key_down(KeyCode::S) as u32 as f32 - input::is_key_down(KeyCode::W) as u32 as f32,
@@ -211,15 +217,20 @@ fn update_camera_control(camera: &mut Camera2D, pan_speed: f32, zoom_speed: f32)
             1.0
         };
 
-    let scroll = 1.0 + input::mouse_wheel().1 * zoom_speed;
-
     camera.target += motion;
-    camera.zoom *= scroll;
+
+    let scroll = zoom_base.powf(input::mouse_wheel().1);
+
+    let max_zoom = 1.0 / 2.0 / particle_simulation::PARTICLE_RADIUS as f32;
+    let min_zoom = 1.0 / simulation_size.y;
+
+    camera.zoom.y *= scroll;
+    camera.zoom.y = camera.zoom.y.clamp(min_zoom, max_zoom);
 }
 
-fn center_camera(camera: &mut Camera2D, size: Vec2) {
-    camera.target = size / 2.0;
-    camera.zoom = 2.0 / size;
+fn center_camera(camera: &mut Camera2D, simulation_size: Vec2) {
+    camera.target = simulation_size / 2.0;
+    camera.zoom = 2.0 / simulation_size;
 }
 
 fn update_camera_aspect_ratio(camera: &mut Camera2D) {
