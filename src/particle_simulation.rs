@@ -1,11 +1,15 @@
+use std::sync::LazyLock;
+
 use crate::matrix::Matrix;
 use macroquad::{
     camera::Camera2D,
-    color::{self, colors, Color},
-    math::{vec2, Vec2},
+    color::{self, Color, colors},
+    material::{self, Material},
+    math::{Vec2, vec2},
+    prelude::{MaterialParams, PipelineParams, ShaderSource},
     shapes,
 };
-use rand::{rngs::ThreadRng, Rng};
+use rand::{Rng, rngs::ThreadRng};
 use rayon::iter::{IndexedParallelIterator, IntoParallelRefMutIterator, ParallelIterator};
 
 pub const PARTICLE_RADIUS: f64 = 5.0;
@@ -272,20 +276,26 @@ impl ParticleSimulation {
             indecies[particle.typ] += 1;
         }
 
+        material::gl_use_material(&PARTICLE_MATERIAL);
+
         // Draw particles
         for &particle in particles_sorted.iter() {
             let position = [
-                particle.position[0] + position.x as f64,
-                particle.position[1] + position.y as f64,
+                particle.position[0] as f32 + position.x,
+                particle.position[1] as f32 + position.y,
             ];
             let color = self.type_data.colors[particle.typ];
-            shapes::draw_circle(
-                position[0] as f32,
-                position[1] as f32,
-                PARTICLE_RADIUS as f32,
+
+            shapes::draw_rectangle(
+                position[0] - PARTICLE_RADIUS as f32,
+                position[1] - PARTICLE_RADIUS as f32,
+                PARTICLE_RADIUS as f32 * 2.0,
+                PARTICLE_RADIUS as f32 * 2.0,
                 color,
             );
         }
+
+        material::gl_use_default_material();
     }
 
     pub fn size(&self) -> [f64; 2] {
@@ -468,3 +478,55 @@ impl ParticleTypeData {
         self.types.size[0]
     }
 }
+
+pub static PARTICLE_MATERIAL: LazyLock<Material> = LazyLock::new(|| {
+    material::load_material(
+        ShaderSource::Glsl {
+            vertex: CIRCLE_VERTEX_SHADER,
+            fragment: CIRCLE_FRAGMENT_SHADER,
+        },
+        MaterialParams {
+            pipeline_params: PipelineParams::default(),
+            ..Default::default()
+        },
+    )
+    .unwrap()
+});
+
+const CIRCLE_VERTEX_SHADER: &'static str = r#"
+    #version 100
+    precision lowp float;
+
+    attribute vec2 position;
+    attribute vec2 texcoord;
+    attribute vec4 color0;
+
+    varying lowp vec2 uv;
+    varying lowp vec4 color;
+
+    uniform mat4 Projection;
+
+    void main() {
+        gl_Position = Projection * vec4(position, 0, 1);
+        color = color0 / 255.0;
+        uv = texcoord;
+    }
+"#;
+
+const CIRCLE_FRAGMENT_SHADER: &'static str = r#"
+    #version 100
+    precision lowp float;
+
+    varying lowp vec2 uv;
+    varying lowp vec4 color;
+
+    void main() {
+        vec2 offset = uv - vec2(0.5, 0.5);
+
+        if (dot(offset, offset) > 0.5 * 0.5) {
+            discard;
+        }
+
+        gl_FragColor = color;
+    }
+"#;

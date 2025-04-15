@@ -2,7 +2,7 @@ use macroquad::{
     camera::{self, Camera2D},
     color::colors,
     input::{self, KeyCode},
-    math::{vec2, Vec2},
+    math::{Vec2, vec2},
     text, time,
     window::{self, Conf},
 };
