@@ -57,7 +57,7 @@ impl ParticleSimulation {
         for bucket_x in 0..self.buckets.size[0] {
             for bucket_y in 0..self.buckets.size[1] {
                 let bucket_index = [bucket_x, bucket_y];
-                // Safety: bucket is never accessed from bucket_index again
+                // SAFETY: bucket is never accessed from bucket_index again
                 let bucket = unsafe {
                     ((&mut self.buckets[bucket_index]) as *mut Vec<Particle>)
                         .as_mut()
@@ -65,7 +65,7 @@ impl ParticleSimulation {
                 };
                 // Update from own bucket
                 for i in 1..bucket.len() {
-                    // Safety: particle is never from the same index as j in the loop below
+                    // SAFETY: particle is never from the same index as j in the loop below
                     let particle = unsafe { ((&mut bucket[i]) as *mut Particle).as_mut().unwrap() };
 
                     // Iterate over each index up to but not including i
@@ -89,7 +89,7 @@ impl ParticleSimulation {
 
                 // Update from neighboring buckets
                 for i in 0..bucket.len() {
-                    // Safety: particle is never accessed from this bucket again
+                    // SAFETY: particle is never accessed from this bucket again
                     let particle = unsafe { ((&mut bucket[i]) as *mut Particle).as_mut().unwrap() };
                     for bucket_relative_index in NEIGHBORS {
                         let neighbor_bucket_index = {
@@ -100,7 +100,7 @@ impl ParticleSimulation {
                             if index.contains(&None) {
                                 continue;
                             }
-                            // Safety: Just checked if bucket_index contains None
+                            // SAFETY: Just checked if bucket_index contains None
                             index.map(|x| x.unwrap())
                         };
 
@@ -131,7 +131,7 @@ impl ParticleSimulation {
         for bucket_x in 0..self.buckets.size[0] {
             for bucket_y in 0..self.buckets.size[1] {
                 let bucket_index = [bucket_x, bucket_y];
-                // Safety: bucket is never accessed by index again
+                // SAFETY: bucket is never accessed by index again
                 let bucket = unsafe {
                     ((&mut self.buckets[bucket_index]) as *mut Vec<Particle>)
                         .as_mut()
