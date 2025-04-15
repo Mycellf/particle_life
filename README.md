@@ -1,10 +1,8 @@
 This is a personal project that I'm sharing for others to enjoy and improve. It's a particle simulation written in rust, rendered with the macroquad library. It follows a set of very simple rules to create interesting emergent behavior. 
   
-Each particle has a type, and each type has a different attraction value to each other type. Every simulation step, particles that are near enough to each other apply acceleration towards each other, with the acceleration being proportional to its attraction value, and inversely proportional to their distance. When particles overlap, they in stead have a strong repulsive acceleration. Equal and opposite forces aren't guarenteed (and are in fact quite rare outside of particles of the same type), which results in many glider-like patterns emerging. Due to the lack of conservation of energy this results in, a steep drag coeficient is applied to each particle as well, to keep speeds managable and to give particles enough time to interact. 
+Each particle has a type, and each type has a different attraction value to each other type. Every simulation step, particles that are near enough to each other apply acceleration towards each other, with the acceleration being proportional to its attraction value, and inversely proportional to their distance. When particles overlap, they in stead have a strong repulsive acceleration. Equal and opposite forces aren't guarantee (and are in fact quite rare outside of particles of the same type), which results in many glider-like patterns emerging. Due to the lack of conservation of energy this results in, a steep drag coefficient is applied to each particle as well, to keep speeds manageable and to give particles enough time to interact. 
 
-The simulation backend uses a bucketing system to improve performance. 
-
-Rendering performance is suboptimal due to using macroquad's built in circle drawing system (it just draws 20-gons). I'm looking into improving this. 
+The simulation backend uses rayon parallelized buckets to improve performance. 
 
 I also plan to add a UI for modifying the state of the simulation. For now, `R` can be used to reset the simulation with a random state. 
 
