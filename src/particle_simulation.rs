@@ -6,6 +6,7 @@ use macroquad::{
     shapes,
 };
 use rand::{rngs::ThreadRng, Rng};
+use rayon::iter::{IndexedParallelIterator, IntoParallelRefMutIterator, ParallelIterator};
 
 pub const PARTICLE_RADIUS: f64 = 5.0;
 
@@ -19,6 +20,7 @@ pub const NEIGHBORS: [[isize; 2]; 8] = [
 #[derive(Clone, Debug)]
 pub struct ParticleSimulation {
     buckets: Matrix<Vec<Particle>>,
+    impulses: Matrix<Vec<[f64; 2]>>,
     type_data: ParticleTypeData,
     bucket_size: f64,
     pub params: ParticleSimulationParams,
@@ -40,6 +42,7 @@ impl ParticleSimulation {
     ) -> Self {
         Self {
             buckets: Matrix::from_element(buckets, Vec::new()),
+            impulses: Matrix::from_element(buckets, Vec::new()),
             type_data: ParticleTypeData::new_random(num_types, attraction_intensity),
             bucket_size,
             params,
@@ -51,22 +54,22 @@ impl ParticleSimulation {
         // borrow checker)
 
         // Cache the rng (is used when particles have 0 distance)
-        let mut rng = rand::thread_rng();
 
         // Update particle velocity
-        for bucket_x in 0..self.buckets.size[0] {
-            for bucket_y in 0..self.buckets.size[1] {
-                let bucket_index = [bucket_x, bucket_y];
-                // SAFETY: bucket is never accessed from bucket_index again
-                let bucket = unsafe {
-                    ((&mut self.buckets[bucket_index]) as *mut Vec<Particle>)
-                        .as_mut()
-                        .unwrap()
-                };
+        (self.impulses.data.par_iter_mut())
+            .enumerate()
+            .for_each(|(i, impulses)| {
+                let mut rng = rand::thread_rng();
+
+                let bucket_index = [i % self.buckets.size[0], i / self.buckets.size[0]];
+                let bucket = &self.buckets[bucket_index];
+
+                impulses.clear();
+                impulses.resize(bucket.len(), [0.0, 0.0]);
+
                 // Update from own bucket
                 for i in 1..bucket.len() {
-                    // SAFETY: particle is never from the same index as j in the loop below
-                    let particle = unsafe { ((&mut bucket[i]) as *mut Particle).as_mut().unwrap() };
+                    let particle = &bucket[i];
 
                     // Iterate over each index up to but not including i
                     for j in 0..i {
@@ -76,6 +79,7 @@ impl ParticleSimulation {
                             &self.params,
                             self.bucket_size,
                             &mut rng,
+                            &mut impulses[i],
                         );
                         bucket[j].update_with_particle(
                             *particle,
@@ -83,14 +87,15 @@ impl ParticleSimulation {
                             &self.params,
                             self.bucket_size,
                             &mut rng,
+                            &mut impulses[j],
                         );
                     }
                 }
 
                 // Update from neighboring buckets
                 for i in 0..bucket.len() {
-                    // SAFETY: particle is never accessed from this bucket again
-                    let particle = unsafe { ((&mut bucket[i]) as *mut Particle).as_mut().unwrap() };
+                    let particle = &bucket[i];
+
                     for bucket_relative_index in NEIGHBORS {
                         let neighbor_bucket_index = {
                             let index = [
@@ -112,18 +117,18 @@ impl ParticleSimulation {
                                     &self.params,
                                     self.bucket_size,
                                     &mut rng,
+                                    &mut impulses[i],
                                 );
                             }
                         }
                     }
                 }
-            }
-        }
+            });
 
         // Move particles
-        for bucket in self.buckets.data.iter_mut() {
-            for particle in bucket {
-                particle.apply_velocity();
+        for (bucket, impulses) in self.buckets.data.iter_mut().zip(self.impulses.data.iter()) {
+            for (particle, &impulse) in bucket.iter_mut().zip(impulses.iter()) {
+                particle.apply_velocity(impulse);
             }
         }
 
@@ -345,7 +350,10 @@ impl Particle {
         }
     }
 
-    pub fn apply_velocity(&mut self) {
+    pub fn apply_velocity(&mut self, impulse: [f64; 2]) {
+        self.velocity[0] += impulse[0];
+        self.velocity[1] += impulse[1];
+
         self.position[0] += self.velocity[0] / 2.0;
         self.position[1] += self.velocity[1] / 2.0;
 
@@ -353,12 +361,13 @@ impl Particle {
     }
 
     pub fn update_with_particle(
-        &mut self,
+        &self,
         other: Particle,
         type_data: &ParticleTypeData,
         params: &ParticleSimulationParams,
         max_distance: f64,
         rng: &mut ThreadRng,
+        impulse: &mut [f64; 2],
     ) {
         #[cold]
         fn randomize_vector(delta_position: &mut [f64; 2], rng: &mut ThreadRng) {
@@ -391,8 +400,8 @@ impl Particle {
             attraction = -PARTICLE_RADIUS / distance_squared;
         }
 
-        self.velocity[0] += attraction * delta_position[0];
-        self.velocity[1] += attraction * delta_position[1];
+        impulse[0] += delta_position[0] * attraction;
+        impulse[1] += delta_position[1] * attraction;
     }
 
     pub fn constrain_to_size(&mut self, size: [f64; 2]) -> [f64; 2] {
