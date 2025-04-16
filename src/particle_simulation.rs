@@ -64,33 +64,26 @@ impl ParticleSimulation {
                 impulses.clear();
                 impulses.resize(bucket.len(), [0.0, 0.0]);
 
-                // Update from own bucket
-                for i in 1..bucket.len() {
+                for i in 0..bucket.len() {
                     let particle = &bucket[i];
+                    let impulse = &mut impulses[i];
 
-                    // Iterate over each index up to but not including i
-                    for j in 0..i {
+                    // Update from own bucket
+                    for j in 0..bucket.len() {
+                        if i == j {
+                            continue;
+                        }
+
                         particle.update_impulse_with_particle(
                             bucket[j],
                             &self.type_data,
                             &self.params,
                             self.bucket_size,
-                            &mut impulses[i],
-                        );
-                        bucket[j].update_impulse_with_particle(
-                            *particle,
-                            &self.type_data,
-                            &self.params,
-                            self.bucket_size,
-                            &mut impulses[j],
+                            impulse,
                         );
                     }
-                }
 
-                // Update from neighboring buckets
-                for i in 0..bucket.len() {
-                    let particle = &bucket[i];
-
+                    // Update from neighboring buckets
                     for bucket_relative_index in NEIGHBORS {
                         let neighbor_bucket_index = {
                             let index = [
@@ -111,7 +104,7 @@ impl ParticleSimulation {
                                     &self.type_data,
                                     &self.params,
                                     self.bucket_size,
-                                    &mut impulses[i],
+                                    impulse,
                                 );
                             }
                         }
