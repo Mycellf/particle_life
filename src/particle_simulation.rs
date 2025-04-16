@@ -65,7 +65,7 @@ impl ParticleSimulation {
                 impulses.resize(bucket.len(), [0.0, 0.0]);
 
                 for i in 0..bucket.len() {
-                    let particle = &bucket[i];
+                    let particle = bucket[i];
                     let impulse = &mut impulses[i];
 
                     // Update from own bucket
