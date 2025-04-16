@@ -61,6 +61,8 @@ async fn main() {
     let (simulation_tx, simulation_rx) = mpsc::channel::<ParticleSimulation>();
     let thread_data_mutex = Arc::new(Mutex::new(thread_data));
 
+    let mut simulation_buffer = simulation.clone();
+
     // Simulation
     let thread_data_reference = Arc::clone(&thread_data_mutex);
     let simulation_thread = thread::spawn(move || {
@@ -115,8 +117,6 @@ async fn main() {
     let mut debug_level: u8 = 0;
     let mut fullscreen = false;
 
-    let mut simulation_buffer = None;
-
     // Rendering and user input
     let thread_data_reference = Arc::clone(&thread_data_mutex);
     loop {
@@ -135,7 +135,7 @@ async fn main() {
         loop {
             match simulation_rx.try_recv() {
                 Ok(simulation) => {
-                    simulation_buffer = Some(simulation);
+                    simulation_buffer = simulation;
                 }
                 Err(error) => match error {
                     mpsc::TryRecvError::Empty => {
@@ -148,62 +148,60 @@ async fn main() {
             }
         }
 
-        if let Some(simulation_buffer) = &simulation_buffer {
-            // Camera control
-            update_camera_control(&mut camera, simulation_buffer.size_vec2(), 1.0, 1.1);
+        // Camera control
+        update_camera_control(&mut camera, simulation_buffer.size_vec2(), 1.0, 1.1);
 
-            // Setup camera
-            update_camera_aspect_ratio(&mut camera);
-            camera::set_camera(&camera);
+        // Setup camera
+        update_camera_aspect_ratio(&mut camera);
+        camera::set_camera(&camera);
 
-            // Update thread_data
-            let tick_time = {
-                let mut thread_data = thread_data_reference.lock().unwrap();
+        // Update thread_data
+        let tick_time = {
+            let mut thread_data = thread_data_reference.lock().unwrap();
 
-                thread_data.active ^= input::is_key_pressed(KeyCode::Space);
-                thread_data.reset |= input::is_key_pressed(KeyCode::R);
+            thread_data.active ^= input::is_key_pressed(KeyCode::Space);
+            thread_data.reset |= input::is_key_pressed(KeyCode::R);
 
-                thread_data.tick_time
+            thread_data.tick_time
+        };
+
+        // Center control
+        if input::is_key_pressed(KeyCode::C) {
+            center_camera(&mut camera, simulation_buffer.size_vec2());
+        }
+
+        // Debug view control
+        if input::is_key_pressed(KeyCode::F3) {
+            let selected_debug_level = if input::is_key_down(KeyCode::LeftShift) {
+                2
+            } else {
+                1
             };
 
-            // Center control
-            if input::is_key_pressed(KeyCode::C) {
-                center_camera(&mut camera, simulation_buffer.size_vec2());
+            if debug_level >= selected_debug_level {
+                debug_level = 0;
+            } else {
+                debug_level = selected_debug_level;
             }
+        }
 
-            // Debug view control
-            if input::is_key_pressed(KeyCode::F3) {
-                let selected_debug_level = if input::is_key_down(KeyCode::LeftShift) {
-                    2
-                } else {
-                    1
-                };
+        // Rendering
+        simulation_buffer.draw_at(vec2(0.0, 0.0), &camera, debug_level > 1);
 
-                if debug_level >= selected_debug_level {
-                    debug_level = 0;
-                } else {
-                    debug_level = selected_debug_level;
-                }
-            }
+        // Draw debug
+        if debug_level > 0 {
+            camera::set_default_camera();
+            text::draw_text(
+                &format!("FPS: {}", time::get_fps()),
+                4.0,
+                24.0,
+                32.0,
+                colors::WHITE,
+            );
 
-            // Rendering
-            simulation_buffer.draw_at(vec2(0.0, 0.0), &camera, debug_level > 1);
-
-            // Draw debug
-            if debug_level > 0 {
-                camera::set_default_camera();
-                text::draw_text(
-                    &format!("FPS: {}", time::get_fps()),
-                    4.0,
-                    24.0,
-                    32.0,
-                    colors::WHITE,
-                );
-
-                if let Some(tick_time) = tick_time {
-                    let tps = (1.0 / tick_time.as_secs_f64()).round();
-                    text::draw_text(&format!("TPS: {tps}"), 4.0, 50.0, 32.0, colors::WHITE);
-                }
+            if let Some(tick_time) = tick_time {
+                let tps = (1.0 / tick_time.as_secs_f64()).round();
+                text::draw_text(&format!("TPS: {tps}"), 4.0, 50.0, 32.0, colors::WHITE);
             }
         }
 
