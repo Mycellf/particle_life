@@ -58,7 +58,7 @@ impl ParticleSimulation {
         (self.impulses.data.par_iter_mut())
             .enumerate()
             .for_each(|(i, impulses)| {
-                let mut rng = rand::thread_rng();
+                let mut rng = rand::rng();
 
                 let bucket_index = [i % self.buckets.size[0], i / self.buckets.size[0]];
                 let bucket = &self.buckets[bucket_index];
@@ -308,14 +308,17 @@ impl ParticleSimulation {
     }
 
     pub fn add_random_particles(&mut self, count: usize) {
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
         let size = self.size();
         for _ in 0..count {
-            let position = [rng.gen_range(0.0..size[0]), rng.gen_range(0.0..size[1])];
+            let position = [
+                rng.random_range(0.0..size[0]),
+                rng.random_range(0.0..size[1]),
+            ];
             let particle = Particle::new(
                 position,
                 [0.0, 0.0],
-                rng.gen_range(0..self.type_data.num_types()),
+                rng.random_range(0..self.type_data.num_types()),
             );
             self.insert_particle(particle);
         }
@@ -380,8 +383,8 @@ impl Particle {
     ) {
         #[cold]
         fn randomize_vector(delta_position: &mut [f64; 2], rng: &mut ThreadRng) {
-            delta_position[0] = rng.gen_range(-0.1..=0.1);
-            delta_position[1] = rng.gen_range(-0.1..=0.1);
+            delta_position[0] = rng.random_range(-0.1..=0.1);
+            delta_position[1] = rng.random_range(-0.1..=0.1);
         }
 
         let mut delta_position = [
@@ -451,9 +454,9 @@ pub struct ParticleTypeData {
 
 impl ParticleTypeData {
     pub fn new_random(num_types: usize, attraction_intensity: f64) -> Self {
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
         let types = Matrix::from_fn([num_types; 2], |_| {
-            rng.gen_range(-attraction_intensity..=attraction_intensity)
+            rng.random_range(-attraction_intensity..=attraction_intensity)
         });
         let colors = (0..num_types)
             .map(|typ| typ as f32 / num_types as f32)
