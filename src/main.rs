@@ -8,7 +8,7 @@ use macroquad::{
 };
 use particle_simulation::{EdgeType, ParticleSimulation, ParticleSimulationParams};
 use std::{
-    sync::{Arc, Mutex},
+    sync::{Arc, Mutex, mpsc},
     thread,
     time::{Duration, Instant},
 };
@@ -47,27 +47,24 @@ fn simulation_from_size(size: [usize; 2], density: f64) -> ParticleSimulation {
 }
 
 fn new_simulation() -> ParticleSimulation {
-    simulation_from_size([90, 60], 2e-3)
+    simulation_from_size([240, 160], 2e-3)
 }
 
 #[macroquad::main(window_conf)]
 async fn main() {
-    let simulation = new_simulation();
+    let mut simulation = new_simulation();
     let thread_data = SimulationThreadData::default();
 
     let mut camera = Camera2D::default();
     center_camera(&mut camera, simulation.size_vec2());
 
-    let simulation_mutex = Arc::new(Mutex::new(simulation));
+    let (simulation_tx, simulation_rx) = mpsc::channel::<ParticleSimulation>();
     let thread_data_mutex = Arc::new(Mutex::new(thread_data));
 
     // Simulation
-    let simulation_reference = Arc::clone(&simulation_mutex);
     let thread_data_reference = Arc::clone(&thread_data_mutex);
     let simulation_thread = thread::spawn(move || {
         let update_time = Duration::from_secs_f64(1.0 / 30.0);
-
-        let mut simulation_buffer = (*simulation_reference.lock().unwrap()).clone();
 
         let mut time = None;
         let mut frame_end;
@@ -88,7 +85,7 @@ async fn main() {
                         }
 
                         if thread_data.reset {
-                            simulation_buffer = new_simulation();
+                            simulation = new_simulation();
                             thread_data.reset = false;
                             break 'simulate;
                         }
@@ -99,14 +96,13 @@ async fn main() {
                     }
 
                     // Update buffer
-                    simulation_buffer.step_simulation();
+                    simulation.step_simulation();
                 }
 
-                // Copy buffer to shared state
-                {
-                    let mut simulation_reference = simulation_reference.lock().unwrap();
-                    *simulation_reference = simulation_buffer.clone();
-                }
+                // Send simulation data to render thread
+                simulation_tx
+                    .send(simulation.clone())
+                    .expect("Error sending simulation");
             }
 
             // Wait if there's time left
@@ -119,8 +115,9 @@ async fn main() {
     let mut debug_mode: u8 = 0;
     let mut fullscreen = false;
 
+    let mut simulation_buffer = None;
+
     // Rendering and user input
-    let simulation_reference = Arc::clone(&simulation_mutex);
     let thread_data_reference = Arc::clone(&thread_data_mutex);
     loop {
         // Panic if the simulation thread is no longer running
@@ -128,72 +125,85 @@ async fn main() {
             panic!("Simulation thread panicked");
         }
 
-        // Copy simulation to buffer
-        let simulation_buffer = {
-            let simulation = simulation_reference.lock().unwrap();
-            (*simulation).clone()
-        };
-
-        // Camera control
-        update_camera_control(&mut camera, simulation_buffer.size_vec2(), 1.0, 1.1);
-
-        // Setup camera
-        update_camera_aspect_ratio(&mut camera);
-        camera::set_camera(&camera);
-
-        // Update thread_data
-        let tick_time = {
-            let mut thread_data = thread_data_reference.lock().unwrap();
-
-            thread_data.active ^= input::is_key_pressed(KeyCode::Space);
-            thread_data.reset |= input::is_key_pressed(KeyCode::R);
-
-            thread_data.tick_time
-        };
-
-        if input::is_key_pressed(KeyCode::F11) {
-            fullscreen ^= true;
-            window::set_fullscreen(fullscreen);
-            input::show_mouse(!fullscreen);
-        }
-
-        // Center control
-        if input::is_key_pressed(KeyCode::C) {
-            center_camera(&mut camera, simulation_buffer.size_vec2());
-        }
-
-        // Debug view control
-        if input::is_key_pressed(KeyCode::F3) {
-            let mode = if input::is_key_down(KeyCode::LeftShift) {
-                2
-            } else {
-                1
-            };
-
-            if debug_mode >= mode {
-                debug_mode = 0;
-            } else {
-                debug_mode = mode;
+        // Copy latest simulation to buffer
+        loop {
+            match simulation_rx.try_recv() {
+                Ok(simulation) => {
+                    simulation_buffer = Some(simulation);
+                }
+                Err(error) => match error {
+                    mpsc::TryRecvError::Empty => {
+                        break;
+                    }
+                    mpsc::TryRecvError::Disconnected => {
+                        panic!("Simulation thread disconnected");
+                    }
+                },
             }
         }
 
-        // Rendering
-        simulation_buffer.draw_at(vec2(0.0, 0.0), &camera, debug_mode > 1);
+        if let Some(simulation_buffer) = &simulation_buffer {
+            // Camera control
+            update_camera_control(&mut camera, simulation_buffer.size_vec2(), 1.0, 1.1);
 
-        // Draw debug
-        if debug_mode > 0 {
-            camera::set_default_camera();
-            text::draw_text(
-                &format!("FPS: {}", time::get_fps()),
-                4.0,
-                24.0,
-                32.0,
-                colors::WHITE,
-            );
+            // Setup camera
+            update_camera_aspect_ratio(&mut camera);
+            camera::set_camera(&camera);
 
-            if let Some(tick_time) = tick_time {
-                let tps = (1.0 / tick_time.as_secs_f64()).round();
-                text::draw_text(&format!("TPS: {tps}"), 4.0, 50.0, 32.0, colors::WHITE);
+            // Update thread_data
+            let tick_time = {
+                let mut thread_data = thread_data_reference.lock().unwrap();
+
+                thread_data.active ^= input::is_key_pressed(KeyCode::Space);
+                thread_data.reset |= input::is_key_pressed(KeyCode::R);
+
+                thread_data.tick_time
+            };
+
+            if input::is_key_pressed(KeyCode::F11) {
+                fullscreen ^= true;
+                window::set_fullscreen(fullscreen);
+                input::show_mouse(!fullscreen);
+            }
+
+            // Center control
+            if input::is_key_pressed(KeyCode::C) {
+                center_camera(&mut camera, simulation_buffer.size_vec2());
+            }
+
+            // Debug view control
+            if input::is_key_pressed(KeyCode::F3) {
+                let mode = if input::is_key_down(KeyCode::LeftShift) {
+                    2
+                } else {
+                    1
+                };
+
+                if debug_mode >= mode {
+                    debug_mode = 0;
+                } else {
+                    debug_mode = mode;
+                }
+            }
+
+            // Rendering
+            simulation_buffer.draw_at(vec2(0.0, 0.0), &camera, debug_mode > 1);
+
+            // Draw debug
+            if debug_mode > 0 {
+                camera::set_default_camera();
+                text::draw_text(
+                    &format!("FPS: {}", time::get_fps()),
+                    4.0,
+                    24.0,
+                    32.0,
+                    colors::WHITE,
+                );
+
+                if let Some(tick_time) = tick_time {
+                    let tps = (1.0 / tick_time.as_secs_f64()).round();
+                    text::draw_text(&format!("TPS: {tps}"), 4.0, 50.0, 32.0, colors::WHITE);
+                }
             }
         }
 
