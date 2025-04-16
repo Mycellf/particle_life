@@ -85,17 +85,12 @@ impl ParticleSimulation {
 
                     // Update from neighboring buckets
                     for bucket_relative_index in NEIGHBORS {
-                        let neighbor_bucket_index = {
-                            let index = [
-                                bucket_index[0].checked_add_signed(bucket_relative_index[0]),
-                                bucket_index[1].checked_add_signed(bucket_relative_index[1]),
-                            ];
-                            if index.contains(&None) {
-                                continue;
-                            }
-                            // SAFETY: Just checked if bucket_index contains None
-                            index.map(|x| x.unwrap())
-                        };
+                        // SAFETY: wrapping_add_signed will wrap to a very big number if there is
+                        // an overflow, as bucket_relative_index[i] is -1, 0, or 1
+                        let neighbor_bucket_index = [
+                            bucket_index[0].wrapping_add_signed(bucket_relative_index[0]),
+                            bucket_index[1].wrapping_add_signed(bucket_relative_index[1]),
+                        ];
 
                         if let Some(neighbor_bucket) = self.buckets.get(neighbor_bucket_index) {
                             for &other in neighbor_bucket {
