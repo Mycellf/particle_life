@@ -280,7 +280,7 @@ impl ParticleSimulation {
 
     pub fn size_vec2(&self) -> Vec2 {
         let size = self.size();
-        vec2(size[0] as f32, size[1] as f32)
+        size.map(|x| x as f32).into()
     }
 
     pub fn insert_particle(&mut self, particle: Particle) -> Option<()> {
