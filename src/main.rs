@@ -142,13 +142,14 @@ async fn main() {
         camera::set_camera(&camera);
 
         // Update thread_data
-        let tick_time;
-        {
+        let tick_time = {
             let mut thread_data = thread_data_reference.lock().unwrap();
+
             thread_data.active ^= input::is_key_pressed(KeyCode::Space);
             thread_data.reset |= input::is_key_pressed(KeyCode::R);
-            tick_time = thread_data.tick_time;
-        }
+
+            thread_data.tick_time
+        };
 
         if input::is_key_pressed(KeyCode::F11) {
             fullscreen ^= true;
@@ -163,12 +164,11 @@ async fn main() {
 
         // Debug view control
         if input::is_key_pressed(KeyCode::F3) {
-            let mode;
-            if input::is_key_down(KeyCode::LeftShift) {
-                mode = 2;
+            let mode = if input::is_key_down(KeyCode::LeftShift) {
+                2
             } else {
-                mode = 1;
-            }
+                1
+            };
 
             if debug_mode >= mode {
                 debug_mode = 0;

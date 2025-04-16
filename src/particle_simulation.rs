@@ -204,8 +204,8 @@ impl ParticleSimulation {
         let offset = radius / 2.0 + PARTICLE_RADIUS as f32;
         let size = self.size();
         shapes::draw_rectangle_lines(
-            position.x as f32 - offset,
-            position.y as f32 - offset,
+            position.x - offset,
+            position.y - offset,
             size[0] as f32 + offset * 2.0,
             size[1] as f32 + offset * 2.0,
             radius,
@@ -404,8 +404,6 @@ impl Particle {
             return;
         }
 
-        let distance_squared = distance_squared;
-
         let attraction;
         if distance_squared > PARTICLE_RADIUS.powi(2) * 4.0 {
             attraction = type_data.get_attraction(self.typ, other.typ) / distance_squared;
@@ -493,7 +491,7 @@ pub static PARTICLE_MATERIAL: LazyLock<Material> = LazyLock::new(|| {
     .unwrap()
 });
 
-const CIRCLE_VERTEX_SHADER: &'static str = r#"
+const CIRCLE_VERTEX_SHADER: &str = r#"
     #version 100
     precision lowp float;
 
@@ -513,7 +511,7 @@ const CIRCLE_VERTEX_SHADER: &'static str = r#"
     }
 "#;
 
-const CIRCLE_FRAGMENT_SHADER: &'static str = r#"
+const CIRCLE_FRAGMENT_SHADER: &str = r#"
     #version 100
     precision lowp float;
 
