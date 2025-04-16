@@ -9,7 +9,7 @@ use macroquad::{
     prelude::{MaterialParams, PipelineParams, ShaderSource},
     shapes,
 };
-use rand::{Rng, rngs::ThreadRng};
+use rand::Rng;
 use rayon::iter::{IndexedParallelIterator, IntoParallelRefMutIterator, ParallelIterator};
 
 pub const PARTICLE_RADIUS: f64 = 5.0;
@@ -58,11 +58,10 @@ impl ParticleSimulation {
         (self.impulses.data.par_iter_mut())
             .enumerate()
             .for_each(|(i, impulses)| {
-                let mut rng = rand::rng();
-
                 let bucket_index = [i % self.buckets.size[0], i / self.buckets.size[0]];
                 let bucket = &self.buckets[bucket_index];
 
+                impulses.clear();
                 impulses.resize(bucket.len(), [0.0, 0.0]);
 
                 // Update from own bucket
@@ -76,7 +75,6 @@ impl ParticleSimulation {
                             &self.type_data,
                             &self.params,
                             self.bucket_size,
-                            &mut rng,
                             &mut impulses[i],
                         );
                         bucket[j].update_impulse_with_particle(
@@ -84,7 +82,6 @@ impl ParticleSimulation {
                             &self.type_data,
                             &self.params,
                             self.bucket_size,
-                            &mut rng,
                             &mut impulses[j],
                         );
                     }
@@ -114,7 +111,6 @@ impl ParticleSimulation {
                                     &self.type_data,
                                     &self.params,
                                     self.bucket_size,
-                                    &mut rng,
                                     &mut impulses[i],
                                 );
                             }
@@ -378,11 +374,12 @@ impl Particle {
         type_data: &ParticleTypeData,
         params: &ParticleSimulationParams,
         max_distance: f64,
-        rng: &mut ThreadRng,
         impulse: &mut [f64; 2],
     ) {
         #[cold]
-        fn randomize_vector(delta_position: &mut [f64; 2], rng: &mut ThreadRng) {
+        fn randomize_vector(delta_position: &mut [f64; 2]) {
+            let mut rng = rand::rng();
+
             delta_position[0] = rng.random_range(-0.1..=0.1);
             delta_position[1] = rng.random_range(-0.1..=0.1);
         }
@@ -393,7 +390,7 @@ impl Particle {
         ];
         // Prevent division by 0 (this has an astronomically low chance to block for some time)
         while delta_position == [0.0, 0.0] {
-            randomize_vector(&mut delta_position, rng);
+            randomize_vector(&mut delta_position);
         }
 
         let distance_squared = delta_position[0].powi(2) + delta_position[1].powi(2);
