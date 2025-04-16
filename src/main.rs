@@ -112,7 +112,7 @@ async fn main() {
         }
     });
 
-    let mut debug_mode: u8 = 0;
+    let mut debug_level: u8 = 0;
     let mut fullscreen = false;
 
     let mut simulation_buffer = None;
@@ -173,24 +173,24 @@ async fn main() {
 
             // Debug view control
             if input::is_key_pressed(KeyCode::F3) {
-                let mode = if input::is_key_down(KeyCode::LeftShift) {
+                let selected_debug_level = if input::is_key_down(KeyCode::LeftShift) {
                     2
                 } else {
                     1
                 };
 
-                if debug_mode >= mode {
-                    debug_mode = 0;
+                if debug_level >= selected_debug_level {
+                    debug_level = 0;
                 } else {
-                    debug_mode = mode;
+                    debug_level = selected_debug_level;
                 }
             }
 
             // Rendering
-            simulation_buffer.draw_at(vec2(0.0, 0.0), &camera, debug_mode > 1);
+            simulation_buffer.draw_at(vec2(0.0, 0.0), &camera, debug_level > 1);
 
             // Draw debug
-            if debug_mode > 0 {
+            if debug_level > 0 {
                 camera::set_default_camera();
                 text::draw_text(
                     &format!("FPS: {}", time::get_fps()),
