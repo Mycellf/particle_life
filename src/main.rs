@@ -47,7 +47,7 @@ fn simulation_from_size(size: [usize; 2], density: f64) -> ParticleSimulation {
 }
 
 fn new_simulation() -> ParticleSimulation {
-    simulation_from_size([120, 80], 2e-3)
+    simulation_from_size([90, 60], 2e-3)
 }
 
 #[macroquad::main(window_conf)]
