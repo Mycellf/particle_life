@@ -77,7 +77,7 @@ impl ParticleSimulation {
 
                     // Iterate over each index up to but not including i
                     for j in 0..i {
-                        particle.update_with_particle(
+                        particle.update_impulse_with_particle(
                             bucket[j],
                             &self.type_data,
                             &self.params,
@@ -85,7 +85,7 @@ impl ParticleSimulation {
                             &mut rng,
                             &mut impulses[i],
                         );
-                        bucket[j].update_with_particle(
+                        bucket[j].update_impulse_with_particle(
                             *particle,
                             &self.type_data,
                             &self.params,
@@ -115,7 +115,7 @@ impl ParticleSimulation {
 
                         if let Some(neighbor_bucket) = self.buckets.get(neighbor_bucket_index) {
                             for &other in neighbor_bucket {
-                                particle.update_with_particle(
+                                particle.update_impulse_with_particle(
                                     other,
                                     &self.type_data,
                                     &self.params,
@@ -375,7 +375,7 @@ impl Particle {
         self.velocity = self.velocity.map(|x| x * 0.9);
     }
 
-    pub fn update_with_particle(
+    pub fn update_impulse_with_particle(
         &self,
         other: Particle,
         type_data: &ParticleTypeData,
