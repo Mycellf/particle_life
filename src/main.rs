@@ -125,6 +125,12 @@ async fn main() {
             panic!("Simulation thread panicked");
         }
 
+        if input::is_key_pressed(KeyCode::F11) {
+            fullscreen ^= true;
+            window::set_fullscreen(fullscreen);
+            input::show_mouse(!fullscreen);
+        }
+
         // Copy latest simulation to buffer
         loop {
             match simulation_rx.try_recv() {
@@ -159,12 +165,6 @@ async fn main() {
 
                 thread_data.tick_time
             };
-
-            if input::is_key_pressed(KeyCode::F11) {
-                fullscreen ^= true;
-                window::set_fullscreen(fullscreen);
-                input::show_mouse(!fullscreen);
-            }
 
             // Center control
             if input::is_key_pressed(KeyCode::C) {
