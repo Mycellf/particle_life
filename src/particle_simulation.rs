@@ -54,12 +54,7 @@ impl ParticleSimulation {
     }
 
     pub fn step_simulation(&mut self) {
-        // (the unsafe blocks that cast a reference to a raw pointer and back are to skip the
-        // borrow checker)
-
-        // Cache the rng (is used when particles have 0 distance)
-
-        // Update particle velocity
+        // Update particle impulses
         (self.impulses.data.par_iter_mut())
             .enumerate()
             .for_each(|(i, impulses)| {
@@ -68,7 +63,6 @@ impl ParticleSimulation {
                 let bucket_index = [i % self.buckets.size[0], i / self.buckets.size[0]];
                 let bucket = &self.buckets[bucket_index];
 
-                impulses.clear();
                 impulses.resize(bucket.len(), [0.0, 0.0]);
 
                 // Update from own bucket
