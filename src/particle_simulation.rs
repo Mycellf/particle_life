@@ -69,13 +69,13 @@ impl ParticleSimulation {
                     let impulse = &mut impulses[i];
 
                     // Update from own bucket
-                    for j in 0..bucket.len() {
+                    for (j, &other) in bucket.iter().enumerate() {
                         if i == j {
                             continue;
                         }
 
                         particle.update_impulse_with_particle(
-                            bucket[j],
+                            other,
                             &self.type_data,
                             &self.params,
                             self.bucket_size,
@@ -113,14 +113,12 @@ impl ParticleSimulation {
             });
 
         // Move particles
-        for (bucket, impulses) in self.buckets.data.iter_mut().zip(self.impulses.data.iter()) {
+        for (bucket, impulses) in self.buckets.data.iter_mut().zip(&mut self.impulses.data) {
             for (particle, &impulse) in bucket.iter_mut().zip(impulses.iter()) {
                 particle.apply_velocity(impulse);
             }
-        }
 
-        // Clear impulses to make cloning the simulation to the render thread faster
-        for impulses in &mut self.impulses.data {
+            // Clear impulses to make cloning the simulation to the render thread faster
             impulses.clear();
         }
 
@@ -128,21 +126,17 @@ impl ParticleSimulation {
         for bucket_x in 0..self.buckets.size[0] {
             for bucket_y in 0..self.buckets.size[1] {
                 let bucket_index = [bucket_x, bucket_y];
-                // SAFETY: bucket is never accessed by index again
-                let bucket = unsafe {
-                    ((&mut self.buckets[bucket_index]) as *mut Vec<Particle>)
-                        .as_mut()
-                        .unwrap()
-                };
 
                 let mut i = 0;
-                while i < bucket.len() {
-                    let particle = &mut bucket[i];
+                while i < self.buckets[bucket_index].len() {
+                    let mut particle = self.buckets[bucket_index][i];
 
                     let index = self.bucket_index_of_position(particle.position);
                     if index != Some(bucket_index) {
-                        if index.is_some() {
-                            self.insert_particle(*particle);
+                        self.buckets[bucket_index].swap_remove(i);
+
+                        if let Some(index) = index {
+                            self.buckets[index].push(particle);
                         } else {
                             // Edge handling
                             match self.params.edge_type {
@@ -150,7 +144,7 @@ impl ParticleSimulation {
                                     let size = self.size();
                                     particle.position[0] = particle.position[0].rem_euclid(size[0]);
                                     particle.position[1] = particle.position[1].rem_euclid(size[1]);
-                                    self.insert_particle(*particle);
+                                    self.insert_particle(particle);
                                 }
                                 EdgeType::Bouncing {
                                     multiplier,
@@ -167,12 +161,11 @@ impl ParticleSimulation {
                                             (particle.velocity[1].abs() * multiplier + pushback)
                                                 * direction[1];
                                     }
-                                    self.insert_particle(*particle);
+                                    self.insert_particle(particle);
                                 }
                                 EdgeType::Deleting => (),
                             }
                         }
-                        bucket.swap_remove(i);
                     } else {
                         i += 1;
                     }
@@ -292,7 +285,7 @@ impl ParticleSimulation {
 
     pub fn insert_particle(&mut self, particle: Particle) -> Option<()> {
         let index = self.bucket_index_of_position(particle.position)?;
-        self.buckets.get_mut(index)?.push(particle);
+        self.buckets[index].push(particle);
         Some(())
     }
 
