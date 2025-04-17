@@ -119,12 +119,15 @@ impl ParticleSimulation {
                             let wrapped_neighbor_bucket_index = [0, 1].map(|i| {
                                 if let Some(index_x) = neighbor_bucket_index[i] {
                                     if index_x >= self.buckets.size[i] {
+                                        // result was greater than the width
                                         offset[i] = self.bucket_size * self.buckets.size[i] as f64;
                                         0
                                     } else {
+                                        // result was within bounds
                                         index_x
                                     }
                                 } else {
+                                    // result was less than 0
                                     offset[i] = -self.bucket_size * self.buckets.size[i] as f64;
                                     self.buckets.size[i] - 1
                                 }
