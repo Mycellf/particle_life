@@ -55,8 +55,14 @@ async fn main() {
     let mut simulation = new_simulation();
     let thread_data = SimulationThreadData::default();
 
-    let mut camera = Camera2D::default();
-    center_camera(&mut camera, simulation.size_vec2());
+    let mut simulation_camera = Camera2D::default();
+    center_camera(&mut simulation_camera, simulation.size_vec2());
+
+    let mut info_camera = Camera2D {
+        zoom: [1.0, 2.0 / 800.0].into(),
+        offset: [-1.0, 1.0].into(),
+        ..Default::default()
+    };
 
     let (simulation_tx, simulation_rx) = mpsc::channel::<ParticleSimulation>();
     let thread_data_mutex = Arc::new(Mutex::new(thread_data));
@@ -154,11 +160,16 @@ async fn main() {
         }
 
         // Camera control
-        update_camera_control(&mut camera, simulation_buffer.size_vec2(), 1.0, 1.1);
+        update_camera_control(
+            &mut simulation_camera,
+            simulation_buffer.size_vec2(),
+            1.0,
+            1.1,
+        );
 
         // Setup camera
-        update_camera_aspect_ratio(&mut camera);
-        camera::set_camera(&camera);
+        update_camera_aspect_ratio(&mut simulation_camera);
+        camera::set_camera(&simulation_camera);
 
         // Update thread_data
         let (tick_time, limit_tps) = {
@@ -174,7 +185,7 @@ async fn main() {
 
         // Center control
         if input::is_key_pressed(KeyCode::C) {
-            center_camera(&mut camera, simulation_buffer.size_vec2());
+            center_camera(&mut simulation_camera, simulation_buffer.size_vec2());
         }
 
         // Debug view control
@@ -193,11 +204,12 @@ async fn main() {
         }
 
         // Rendering
-        simulation_buffer.draw_at(vec2(0.0, 0.0), &camera, debug_level > 1);
+        simulation_buffer.draw_at(vec2(0.0, 0.0), &simulation_camera, debug_level > 1);
 
         // Draw debug
         if debug_level > 0 {
-            camera::set_default_camera();
+            update_camera_aspect_ratio(&mut info_camera);
+            camera::set_camera(&info_camera);
             text::draw_text(
                 &format!("FPS: {}", time::get_fps()),
                 4.0,
@@ -238,7 +250,7 @@ fn update_camera_control(
 
     camera.target += motion;
 
-    let scroll = zoom_base.powf(input::mouse_wheel().1);
+    let scroll = zoom_base.powf(input::mouse_wheel().1.clamp(-1.0, 1.0));
 
     let max_zoom = 1.0 / 2.0 / particle_simulation::PARTICLE_RADIUS as f32;
     let min_zoom = 1.0 / simulation_size.y;
