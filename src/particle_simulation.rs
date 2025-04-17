@@ -405,21 +405,27 @@ impl Particle {
         max_distance_squared: f64,
         impulse: &mut [f64; 2],
     ) {
-        #[cold]
-        fn randomize_vector(delta_position: &mut [f64; 2]) {
-            let mut rng = rand::rng();
-
-            delta_position[0] = rng.random_range(-0.1..=0.1);
-            delta_position[1] = rng.random_range(-0.1..=0.1);
-        }
-
         let mut delta_position = [
             other.position[0] - self.position[0],
             other.position[1] - self.position[1],
         ];
-        // Prevent division by 0 (this has an astronomically low chance to block for some time)
-        while delta_position == [0.0, 0.0] {
+
+        // Prevent division by 0
+        if delta_position == [0.0, 0.0] {
             randomize_vector(&mut delta_position);
+
+            #[cold]
+            #[inline(never)]
+            fn randomize_vector(delta_position: &mut [f64; 2]) {
+                use macroquad::rand;
+
+                let random = || {
+                    rand::gen_range(0.0000001, 0.1) * if rand::rand() & 1 != 0 { 1.0 } else { -1.0 }
+                };
+
+                delta_position[0] = random();
+                delta_position[1] = random();
+            }
         }
 
         let distance_squared = delta_position[0].powi(2) + delta_position[1].powi(2);
