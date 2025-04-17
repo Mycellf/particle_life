@@ -60,6 +60,8 @@ impl ParticleSimulation {
             false
         };
 
+        let maximum_distance_squared = self.bucket_size.powi(2);
+
         // Update particle impulses
         (self.impulses.data.par_iter_mut())
             .enumerate()
@@ -84,7 +86,7 @@ impl ParticleSimulation {
                             other,
                             &self.type_data,
                             &self.params,
-                            self.bucket_size,
+                            maximum_distance_squared,
                             impulse,
                         );
                     }
@@ -104,7 +106,7 @@ impl ParticleSimulation {
                                     other,
                                     &self.type_data,
                                     &self.params,
-                                    self.bucket_size,
+                                    maximum_distance_squared,
                                     impulse,
                                 );
                             }
@@ -144,7 +146,7 @@ impl ParticleSimulation {
                                     },
                                     &self.type_data,
                                     &self.params,
-                                    self.bucket_size,
+                                    maximum_distance_squared,
                                     impulse,
                                 );
                             }
@@ -400,7 +402,7 @@ impl Particle {
         other: Particle,
         type_data: &ParticleTypeData,
         params: &ParticleSimulationParams,
-        max_distance: f64,
+        max_distance_squared: f64,
         impulse: &mut [f64; 2],
     ) {
         #[cold]
@@ -421,7 +423,7 @@ impl Particle {
         }
 
         let distance_squared = delta_position[0].powi(2) + delta_position[1].powi(2);
-        if distance_squared > max_distance.powi(2) {
+        if distance_squared > max_distance_squared {
             return;
         }
 
