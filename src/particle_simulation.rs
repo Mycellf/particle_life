@@ -54,6 +54,12 @@ impl ParticleSimulation {
     }
 
     pub fn step_simulation(&mut self) {
+        let wrap_edges = if let EdgeType::Wrapping = self.params.edge_type {
+            true
+        } else {
+            false
+        };
+
         // Update particle impulses
         (self.impulses.data.par_iter_mut())
             .enumerate()
@@ -96,6 +102,43 @@ impl ParticleSimulation {
                             for &other in neighbor_bucket {
                                 particle.update_impulse_with_particle(
                                     other,
+                                    &self.type_data,
+                                    &self.params,
+                                    self.bucket_size,
+                                    impulse,
+                                );
+                            }
+                        } else if wrap_edges {
+                            let neighbor_bucket_index = [
+                                bucket_index[0].checked_add_signed(bucket_relative_index[0]),
+                                bucket_index[1].checked_add_signed(bucket_relative_index[1]),
+                            ];
+
+                            let mut offset = [0.0, 0.0];
+
+                            let wrapped_neighbor_bucket_index = [0, 1].map(|i| {
+                                if let Some(index_x) = neighbor_bucket_index[i] {
+                                    if index_x >= self.buckets.size[i] {
+                                        offset[i] = self.bucket_size * self.buckets.size[i] as f64;
+                                        0
+                                    } else {
+                                        index_x
+                                    }
+                                } else {
+                                    offset[i] = -self.bucket_size * self.buckets.size[i] as f64;
+                                    self.buckets.size[i] - 1
+                                }
+                            });
+
+                            for &other in &self.buckets[wrapped_neighbor_bucket_index] {
+                                particle.update_impulse_with_particle(
+                                    Particle {
+                                        position: [
+                                            other.position[0] + offset[0],
+                                            other.position[1] + offset[1],
+                                        ],
+                                        ..other
+                                    },
                                     &self.type_data,
                                     &self.params,
                                     self.bucket_size,
