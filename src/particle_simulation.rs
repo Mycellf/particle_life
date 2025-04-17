@@ -6,7 +6,7 @@ use macroquad::{
     color::{self, Color, colors},
     material::{self, Material},
     math::{Vec2, vec2},
-    prelude::{MaterialParams, PipelineParams, ShaderSource},
+    prelude::{MaterialParams, ShaderSource},
     shapes,
 };
 use rand::Rng;
@@ -266,7 +266,7 @@ impl ParticleSimulation {
                 }
 
                 // Select particles for rendering
-                for particle in bucket {
+                for &particle in bucket {
                     particles.push(particle);
                 }
             }
@@ -274,7 +274,8 @@ impl ParticleSimulation {
 
         // Sort particles (counting sort):
         // counting step
-        let mut indecies: Box<[usize]> = (0..self.type_data.num_types()).map(|_| 0).collect();
+        let mut indecies = vec![0; self.type_data.num_types()].into_boxed_slice();
+
         for particle in particles.iter() {
             indecies[particle.typ] += 1;
         }
@@ -288,17 +289,16 @@ impl ParticleSimulation {
         }
 
         // filling step
-        let mut particles_sorted: Box<[_]> =
-            (0..particles.len()).map(|_| Particle::default()).collect();
+        let mut particles_sorted = vec![Particle::default(); particles.len()].into_boxed_slice();
         for particle in particles {
-            particles_sorted[indecies[particle.typ]] = *particle;
+            particles_sorted[indecies[particle.typ]] = particle;
             indecies[particle.typ] += 1;
         }
 
+        // Draw particles
         material::gl_use_material(&PARTICLE_MATERIAL);
 
-        // Draw particles
-        for &particle in particles_sorted.iter() {
+        for particle in particles_sorted.into_iter() {
             let position = [
                 particle.position[0] as f32 + position.x,
                 particle.position[1] as f32 + position.y,
