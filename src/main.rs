@@ -69,17 +69,20 @@ async fn main() {
         let update_time = Duration::from_secs_f64(1.0 / 30.0);
 
         let mut time = None;
-        let mut frame_end;
         loop {
             // Set the target frame end time
-            frame_end = Instant::now() + update_time;
+            let frame_end = Instant::now() + update_time;
 
             let start = Instant::now();
+            let limit_tps;
 
             'update: {
                 'simulate: {
                     {
                         let mut thread_data = thread_data_reference.lock().unwrap();
+
+                        limit_tps = thread_data.limit_tps;
+
                         if thread_data.active {
                             thread_data.tick_time = time;
                         } else {
@@ -107,8 +110,10 @@ async fn main() {
                     .expect("Error sending simulation");
             }
 
-            // Wait if there's time left
-            thread::sleep(frame_end - Instant::now());
+            if limit_tps {
+                // Wait if there's time left
+                thread::sleep(frame_end - Instant::now());
+            }
 
             time = Some(Instant::now() - start);
         }
@@ -156,13 +161,15 @@ async fn main() {
         camera::set_camera(&camera);
 
         // Update thread_data
-        let tick_time = {
+        let (tick_time, limit_tps) = {
             let mut thread_data = thread_data_reference.lock().unwrap();
 
             thread_data.active ^= input::is_key_pressed(KeyCode::Space);
             thread_data.reset |= input::is_key_pressed(KeyCode::R);
 
-            thread_data.tick_time
+            thread_data.limit_tps ^= input::is_key_pressed(KeyCode::L) && thread_data.active;
+
+            (thread_data.tick_time, thread_data.limit_tps)
         };
 
         // Center control
@@ -202,6 +209,10 @@ async fn main() {
             if let Some(tick_time) = tick_time {
                 let tps = (1.0 / tick_time.as_secs_f64()).round();
                 text::draw_text(&format!("TPS: {tps}"), 4.0, 50.0, 32.0, colors::WHITE);
+
+                if !limit_tps {
+                    text::draw_text(&format!("unlimited"), 4.0, 76.0, 32.0, colors::WHITE);
+                }
             }
         }
 
@@ -249,6 +260,7 @@ pub struct SimulationThreadData {
     pub active: bool,
     pub reset: bool,
     pub tick_time: Option<Duration>,
+    pub limit_tps: bool,
 }
 
 impl Default for SimulationThreadData {
@@ -257,6 +269,7 @@ impl Default for SimulationThreadData {
             active: true,
             reset: false,
             tick_time: None,
+            limit_tps: true,
         }
     }
 }
