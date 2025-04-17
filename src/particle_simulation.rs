@@ -555,7 +555,7 @@ const CIRCLE_FRAGMENT_SHADER: &str = r#"
     void main() {
         vec2 offset = uv - vec2(0.5, 0.5);
 
-        if (dot(offset, offset) > 0.5 * 0.5) {
+        if (dot(offset, offset) > 0.25) {
             discard;
         }
 
