@@ -512,10 +512,7 @@ pub static PARTICLE_MATERIAL: LazyLock<Material> = LazyLock::new(|| {
             vertex: CIRCLE_VERTEX_SHADER,
             fragment: CIRCLE_FRAGMENT_SHADER,
         },
-        MaterialParams {
-            pipeline_params: PipelineParams::default(),
-            ..Default::default()
-        },
+        MaterialParams::default(),
     )
     .unwrap()
 });
