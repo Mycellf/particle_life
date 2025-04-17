@@ -44,11 +44,6 @@ impl ParticleSimulation {
         num_types: usize,
         attraction_intensity: f64,
     ) -> Self {
-        // WARN: Wrapping mode doesn't work with fewer than 3 buckets on an axis
-        if let EdgeType::Wrapping = params.edge_type {
-            assert!(buckets[0] >= 3 && buckets[1] >= 3);
-        }
-
         Self {
             buckets: Matrix::from_element(buckets, Vec::new()),
             impulses: Matrix::from_element(buckets, Vec::new()),
