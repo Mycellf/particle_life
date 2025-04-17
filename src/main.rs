@@ -33,10 +33,11 @@ fn simulation_from_size(size: [usize; 2], density: f64) -> ParticleSimulation {
         bucket_size,
         size,
         ParticleSimulationParams {
-            edge_type: EdgeType::Bouncing {
-                multiplier: 1.0,
-                pushback: 2.5,
-            },
+            edge_type: EdgeType::Wrapping,
+            // edge_type: EdgeType::Bouncing {
+            //     multiplier: 1.0,
+            //     pushback: 2.5,
+            // },
             prevent_particle_ejecting: true,
         },
         50,
