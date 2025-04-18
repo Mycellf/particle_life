@@ -398,6 +398,7 @@ impl Particle {
         self.velocity = self.velocity.map(|x| x * 0.9);
     }
 
+    #[inline(always)]
     pub fn update_impulse_with_particle(
         &self,
         other: Particle,
@@ -406,28 +407,26 @@ impl Particle {
         max_distance_squared: Real,
         impulse: &mut [Real; 2],
     ) {
-        let mut delta_position = [
-            other.position[0] - self.position[0],
-            other.position[1] - self.position[1],
-        ];
-
-        // Prevent division by 0
-        if delta_position == [0.0, 0.0] {
-            randomize_vector(&mut delta_position);
-
+        let delta_position = if self.position != other.position {
+            [
+                other.position[0] - self.position[0],
+                other.position[1] - self.position[1],
+            ]
+        } else {
             #[cold]
             #[inline(never)]
-            fn randomize_vector(delta_position: &mut [Real; 2]) {
+            fn random_vector() -> [f64; 2] {
                 use macroquad::rand;
 
                 let random = || {
                     rand::gen_range(0.0000001, 0.1) * if rand::rand() & 1 != 0 { 1.0 } else { -1.0 }
                 };
 
-                delta_position[0] = random();
-                delta_position[1] = random();
+                [random(), random()]
             }
-        }
+
+            random_vector()
+        };
 
         let distance_squared = delta_position[0].powi(2) + delta_position[1].powi(2);
         if distance_squared > max_distance_squared {
