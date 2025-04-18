@@ -433,14 +433,13 @@ impl Particle {
             return;
         }
 
-        let attraction;
-        if distance_squared > PARTICLE_RADIUS.powi(2) * 4.0 {
-            attraction = type_data.get_attraction(self.typ, other.typ) / distance_squared;
+        let attraction = if distance_squared > PARTICLE_RADIUS.powi(2) * 4.0 {
+            type_data.get_attraction(self.typ, other.typ) / distance_squared
         } else if params.prevent_particle_ejecting && distance_squared < 1.0 {
-            attraction = PARTICLE_RADIUS / distance_squared.sqrt();
+            PARTICLE_RADIUS / distance_squared.sqrt()
         } else {
-            attraction = -PARTICLE_RADIUS / distance_squared;
-        }
+            -PARTICLE_RADIUS / distance_squared
+        };
 
         impulse[0] += delta_position[0] * attraction;
         impulse[1] += delta_position[1] * attraction;
