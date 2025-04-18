@@ -433,7 +433,10 @@ impl Particle {
             return;
         }
 
-        let attraction = if distance_squared > PARTICLE_RADIUS.powi(2) * 4.0 {
+        const MINIMUM_DISTANCE: Real = PARTICLE_RADIUS * 2.0;
+        const MINIMUM_DISTANCE_SQUARED: Real = MINIMUM_DISTANCE * MINIMUM_DISTANCE;
+
+        let attraction = if distance_squared > MINIMUM_DISTANCE_SQUARED {
             type_data.get_attraction(self.typ, other.typ) / distance_squared
         } else if params.prevent_particle_ejecting && distance_squared < 1.0 {
             PARTICLE_RADIUS / distance_squared.sqrt()
