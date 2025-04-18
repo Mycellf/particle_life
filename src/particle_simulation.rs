@@ -416,11 +416,11 @@ impl Particle {
             #[cold]
             #[inline(never)]
             fn random_vector() -> [f64; 2] {
-                use macroquad::rand;
+                fn random() -> f64 {
+                    use macroquad::rand;
 
-                let random = || {
                     rand::gen_range(0.0000001, 0.1) * if rand::rand() & 1 != 0 { 1.0 } else { -1.0 }
-                };
+                }
 
                 [random(), random()]
             }
