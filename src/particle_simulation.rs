@@ -415,8 +415,8 @@ impl Particle {
         } else {
             #[cold]
             #[inline(never)]
-            fn random_vector() -> [f64; 2] {
-                fn random() -> f64 {
+            fn random_vector() -> [Real; 2] {
+                fn random() -> Real {
                     use macroquad::rand;
 
                     rand::gen_range(0.0000001, 0.1) * if rand::rand() & 1 != 0 { 1.0 } else { -1.0 }
