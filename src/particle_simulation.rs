@@ -12,7 +12,9 @@ use macroquad::{
 use rand::Rng;
 use rayon::iter::{IndexedParallelIterator, IntoParallelRefMutIterator, ParallelIterator};
 
-pub const PARTICLE_RADIUS: f64 = 5.0;
+pub type Real = f64;
+
+pub const PARTICLE_RADIUS: Real = 5.0;
 
 #[rustfmt::skip]
 pub const NEIGHBORS: [[isize; 2]; 8] = [
@@ -24,9 +26,9 @@ pub const NEIGHBORS: [[isize; 2]; 8] = [
 #[derive(Clone, Debug)]
 pub struct ParticleSimulation {
     buckets: Matrix<Vec<Particle>>,
-    impulses: Matrix<Vec<[f64; 2]>>,
+    impulses: Matrix<Vec<[Real; 2]>>,
     type_data: ParticleTypeData,
-    bucket_size: f64,
+    bucket_size: Real,
     pub params: ParticleSimulationParams,
 }
 
@@ -38,11 +40,11 @@ pub struct ParticleSimulationParams {
 
 impl ParticleSimulation {
     pub fn new(
-        bucket_size: f64,
+        bucket_size: Real,
         buckets: [usize; 2],
         params: ParticleSimulationParams,
         num_types: usize,
-        attraction_intensity: f64,
+        attraction_intensity: Real,
     ) -> Self {
         Self {
             buckets: Matrix::from_element(buckets, Vec::new()),
@@ -121,7 +123,7 @@ impl ParticleSimulation {
                                 if let Some(index_x) = neighbor_bucket_index[i] {
                                     if index_x >= self.buckets.size[i] {
                                         // result was greater than the width
-                                        offset[i] = self.bucket_size * self.buckets.size[i] as f64;
+                                        offset[i] = self.bucket_size * self.buckets.size[i] as Real;
                                         0
                                     } else {
                                         // result was within bounds
@@ -129,7 +131,7 @@ impl ParticleSimulation {
                                     }
                                 } else {
                                     // result was less than 0
-                                    offset[i] = -self.bucket_size * self.buckets.size[i] as f64;
+                                    offset[i] = -self.bucket_size * self.buckets.size[i] as Real;
                                     self.buckets.size[i] - 1
                                 }
                             });
@@ -316,8 +318,8 @@ impl ParticleSimulation {
         material::gl_use_default_material();
     }
 
-    pub fn size(&self) -> [f64; 2] {
-        self.buckets.size.map(|x| x as f64 * self.bucket_size)
+    pub fn size(&self) -> [Real; 2] {
+        self.buckets.size.map(|x| x as Real * self.bucket_size)
     }
 
     pub fn size_vec2(&self) -> Vec2 {
@@ -348,14 +350,14 @@ impl ParticleSimulation {
         }
     }
 
-    fn position_of_bucket(&self, index: [usize; 2]) -> [f64; 2] {
+    fn position_of_bucket(&self, index: [usize; 2]) -> [Real; 2] {
         [
-            index[0] as f64 * self.bucket_size,
-            index[1] as f64 * self.bucket_size,
+            index[0] as Real * self.bucket_size,
+            index[1] as Real * self.bucket_size,
         ]
     }
 
-    fn bucket_index_of_position(&self, position: [f64; 2]) -> Option<[usize; 2]> {
+    fn bucket_index_of_position(&self, position: [Real; 2]) -> Option<[usize; 2]> {
         if position[0] < 0.0 && position[1] < 0.0 {
             return None;
         }
@@ -372,13 +374,13 @@ impl ParticleSimulation {
 
 #[derive(Clone, Copy, Debug, Default)]
 pub struct Particle {
-    pub position: [f64; 2],
-    pub velocity: [f64; 2],
+    pub position: [Real; 2],
+    pub velocity: [Real; 2],
     pub typ: usize,
 }
 
 impl Particle {
-    pub fn new(position: [f64; 2], velocity: [f64; 2], typ: usize) -> Self {
+    pub fn new(position: [Real; 2], velocity: [Real; 2], typ: usize) -> Self {
         Self {
             position,
             velocity,
@@ -386,7 +388,7 @@ impl Particle {
         }
     }
 
-    pub fn apply_velocity(&mut self, impulse: [f64; 2]) {
+    pub fn apply_velocity(&mut self, impulse: [Real; 2]) {
         self.velocity[0] += impulse[0];
         self.velocity[1] += impulse[1];
 
@@ -401,8 +403,8 @@ impl Particle {
         other: Particle,
         type_data: &ParticleTypeData,
         params: &ParticleSimulationParams,
-        max_distance_squared: f64,
-        impulse: &mut [f64; 2],
+        max_distance_squared: Real,
+        impulse: &mut [Real; 2],
     ) {
         let mut delta_position = [
             other.position[0] - self.position[0],
@@ -415,7 +417,7 @@ impl Particle {
 
             #[cold]
             #[inline(never)]
-            fn randomize_vector(delta_position: &mut [f64; 2]) {
+            fn randomize_vector(delta_position: &mut [Real; 2]) {
                 use macroquad::rand;
 
                 let random = || {
@@ -445,7 +447,7 @@ impl Particle {
         impulse[1] += delta_position[1] * attraction;
     }
 
-    pub fn constrain_to_size(&mut self, size: [f64; 2]) -> [f64; 2] {
+    pub fn constrain_to_size(&mut self, size: [Real; 2]) -> [Real; 2] {
         let mut direction = [0.0; 2];
         let size = [size[0] - 1e-5, size[1] - 1e-5];
 
@@ -473,18 +475,18 @@ impl Particle {
 #[derive(Clone, Copy, Debug)]
 pub enum EdgeType {
     Wrapping,
-    Bouncing { multiplier: f64, pushback: f64 },
+    Bouncing { multiplier: Real, pushback: Real },
     Deleting,
 }
 
 #[derive(Clone, Debug)]
 pub struct ParticleTypeData {
-    types: Matrix<f64>,
+    types: Matrix<Real>,
     colors: Box<[Color]>,
 }
 
 impl ParticleTypeData {
-    pub fn new_random(num_types: usize, attraction_intensity: f64) -> Self {
+    pub fn new_random(num_types: usize, attraction_intensity: Real) -> Self {
         let mut rng = rand::rng();
         let types = Matrix::from_fn([num_types; 2], |_| {
             rng.random_range(-attraction_intensity..=attraction_intensity)
@@ -496,7 +498,7 @@ impl ParticleTypeData {
         Self { types, colors }
     }
 
-    pub fn get_attraction(&self, source: usize, target: usize) -> f64 {
+    pub fn get_attraction(&self, source: usize, target: usize) -> Real {
         self.types[[source, target]]
     }
 

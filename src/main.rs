@@ -6,7 +6,7 @@ use macroquad::{
     text, time,
     window::{self, Conf},
 };
-use particle_simulation::{EdgeType, ParticleSimulation, ParticleSimulationParams};
+use particle_simulation::{EdgeType, ParticleSimulation, ParticleSimulationParams, Real};
 use std::{
     sync::{Arc, Mutex, mpsc},
     thread,
@@ -23,10 +23,10 @@ fn window_conf() -> Conf {
     }
 }
 
-fn simulation_from_size(size: [usize; 2], density: f64) -> ParticleSimulation {
-    let bucket_size: f64 = 100.0;
+fn simulation_from_size(size: [usize; 2], density: Real) -> ParticleSimulation {
+    let bucket_size: Real = 100.0;
     let buckets = size[0] * size[1];
-    let area = buckets as f64 * bucket_size.powi(2);
+    let area = buckets as Real * bucket_size.powi(2);
     let particle_count = area * density;
     let particle_count = particle_count as usize;
     let mut particle_simulation = ParticleSimulation::new(
