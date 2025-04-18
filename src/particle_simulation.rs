@@ -16,13 +16,6 @@ pub type Real = f64;
 
 pub const PARTICLE_RADIUS: Real = 5.0;
 
-#[rustfmt::skip]
-pub const NEIGHBORS: [[isize; 2]; 8] = [
-    [-1,  1], [ 0,  1], [ 1,  1],
-    [-1,  0],           [ 1,  0],
-    [-1, -1], [ 0, -1], [ 1, -1],
-];
-
 #[derive(Clone, Debug)]
 pub struct ParticleSimulation {
     buckets: Matrix<Vec<Particle>>,
@@ -91,6 +84,13 @@ impl ParticleSimulation {
                             impulse,
                         );
                     }
+
+                    #[rustfmt::skip]
+                    pub const NEIGHBORS: [[isize; 2]; 8] = [
+                        [-1,  1], [ 0,  1], [ 1,  1],
+                        [-1,  0],           [ 1,  0],
+                        [-1, -1], [ 0, -1], [ 1, -1],
+                    ];
 
                     // Update from neighboring buckets
                     for bucket_relative_index in NEIGHBORS {
