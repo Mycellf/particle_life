@@ -72,9 +72,8 @@ impl ParticleSimulation {
                 impulses.clear();
                 impulses.resize(bucket.len(), [0.0, 0.0]);
 
-                for i in 0..bucket.len() {
+                (impulses.par_iter_mut().enumerate()).for_each(|(i, impulse)| {
                     let particle = bucket[i];
-                    let impulse = &mut impulses[i];
 
                     // Update from own bucket
                     for (j, &other) in bucket.iter().enumerate() {
@@ -152,7 +151,7 @@ impl ParticleSimulation {
                             }
                         }
                     }
-                }
+                });
             });
 
         // Move particles
