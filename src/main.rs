@@ -69,7 +69,7 @@ async fn main() {
         ..Default::default()
     };
 
-    let (simulation_tx, simulation_rx) = mpsc::channel::<(ParticleSimulation, bool)>();
+    let (simulation_tx, simulation_rx) = mpsc::channel::<ParticleSimulation>();
     let (user_input_tx, user_input_rx) = mpsc::channel::<ParticleSimulation>();
 
     let mut simulation_buffer = simulation.clone();
@@ -80,14 +80,16 @@ async fn main() {
         loop {
             let start = Instant::now();
 
-            let mut update_recieved = false;
-
             // Copy latest simulation to buffer
             loop {
                 match user_input_rx.try_recv() {
                     Ok(simulation_buffer) => {
-                        update_recieved = true;
-                        simulation = simulation_buffer;
+                        // simulation = simulation_buffer;
+                        if simulation_buffer.metadata.update_generation
+                            >= simulation.metadata.update_generation
+                        {
+                            simulation = simulation_buffer;
+                        }
                     }
                     Err(error) => match error {
                         mpsc::TryRecvError::Empty => {
@@ -104,28 +106,6 @@ async fn main() {
                 .map(|tps_limit| start + Duration::from_secs_f64(1.0 / tps_limit as f64));
 
             {
-                // {
-                //     let mut thread_data = thread_data_reference.lock().unwrap();
-                //
-                //     limit_tps = thread_data.limit_tps;
-                //
-                //     if thread_data.active {
-                //         thread_data.tick_time = time;
-                //     } else {
-                //         thread_data.tick_time = None;
-                //     }
-                //
-                //     if thread_data.reset {
-                //         simulation = new_simulation();
-                //         thread_data.reset = false;
-                //         break 'simulate;
-                //     }
-                //
-                //     if !thread_data.active {
-                //         break 'update;
-                //     }
-                // }
-
                 if simulation.metadata.is_active {
                     simulation.step_simulation();
 
@@ -133,7 +113,7 @@ async fn main() {
 
                     // Send simulation data to render thread
                     simulation_tx
-                        .send((simulation.clone(), update_recieved))
+                        .send(simulation.clone())
                         .expect("Error sending simulation to user input");
                 } else {
                     simulation.metadata.tick_time = None;
@@ -153,8 +133,6 @@ async fn main() {
 
     let mut debug_level: u8 = 0;
     let mut fullscreen = false;
-
-    let mut updated = false;
 
     // Rendering and user input
     loop {
@@ -179,8 +157,10 @@ async fn main() {
         // Copy latest simulation to buffer
         loop {
             match simulation_rx.try_recv() {
-                Ok((simulation, update_recieved)) => {
-                    if update_recieved || !updated {
+                Ok(simulation) => {
+                    if simulation.metadata.update_generation
+                        >= simulation_buffer.metadata.update_generation
+                    {
                         simulation_buffer = simulation;
                     }
                 }
@@ -195,7 +175,7 @@ async fn main() {
             }
         }
 
-        updated = false;
+        let mut updated = false;
 
         if input::is_key_pressed(KeyCode::Space) {
             simulation_buffer.metadata.is_active ^= true;
@@ -203,7 +183,9 @@ async fn main() {
         }
 
         if input::is_key_pressed(KeyCode::R) {
-            simulation_buffer = new_simulation();
+            let mut new_simulation = new_simulation();
+            new_simulation.metadata = simulation_buffer.metadata;
+            simulation_buffer = new_simulation;
             updated = true;
         }
 
@@ -218,6 +200,11 @@ async fn main() {
         }
 
         if updated {
+            simulation_buffer.metadata.update_generation =
+                (simulation_buffer.metadata.update_generation)
+                    .checked_add(1)
+                    .expect("Too many updates (update_generation overflowed)");
+
             // Send the simulation buffer back
             user_input_tx
                 .send(simulation_buffer.clone())

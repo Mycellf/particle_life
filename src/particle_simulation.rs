@@ -37,6 +37,7 @@ pub struct ParticleSimulationMetadata {
     pub is_active: bool,
     pub tick_time: Option<Duration>,
     pub tps_limit: Option<usize>,
+    pub update_generation: u64,
 }
 
 impl Default for ParticleSimulationMetadata {
@@ -45,6 +46,7 @@ impl Default for ParticleSimulationMetadata {
             is_active: true,
             tick_time: None,
             tps_limit: Some(30),
+            update_generation: 0,
         }
     }
 }
