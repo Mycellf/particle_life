@@ -1,4 +1,4 @@
-use std::sync::LazyLock;
+use std::{sync::LazyLock, time::Duration};
 
 use crate::matrix::Matrix;
 use macroquad::{
@@ -23,6 +23,7 @@ pub struct ParticleSimulation {
     type_data: ParticleTypeData,
     bucket_size: Real,
     pub params: ParticleSimulationParams,
+    pub metadata: ParticleSimulationMetadata,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -31,11 +32,29 @@ pub struct ParticleSimulationParams {
     pub prevent_particle_ejecting: bool,
 }
 
+#[derive(Clone, Copy, Debug)]
+pub struct ParticleSimulationMetadata {
+    pub is_active: bool,
+    pub tick_time: Option<Duration>,
+    pub tps_limit: Option<usize>,
+}
+
+impl Default for ParticleSimulationMetadata {
+    fn default() -> Self {
+        Self {
+            is_active: true,
+            tick_time: None,
+            tps_limit: Some(30),
+        }
+    }
+}
+
 impl ParticleSimulation {
     pub fn new(
         bucket_size: Real,
         buckets: [usize; 2],
         params: ParticleSimulationParams,
+        metadata: ParticleSimulationMetadata,
         num_types: usize,
         attraction_intensity: Real,
     ) -> Self {
@@ -45,6 +64,7 @@ impl ParticleSimulation {
             type_data: ParticleTypeData::new_random(num_types, attraction_intensity),
             bucket_size,
             params,
+            metadata,
         }
     }
 

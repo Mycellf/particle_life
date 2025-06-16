@@ -8,10 +8,12 @@ use macroquad::{
 };
 use particle_simulation::{EdgeType, ParticleSimulation, ParticleSimulationParams, Real};
 use std::{
-    sync::{Arc, Mutex, mpsc},
+    sync::mpsc,
     thread,
     time::{Duration, Instant},
 };
+
+use crate::particle_simulation::ParticleSimulationMetadata;
 
 pub(crate) mod matrix;
 pub(crate) mod particle_simulation;
@@ -42,6 +44,7 @@ fn simulation_from_size(size: [usize; 2], density: Real) -> ParticleSimulation {
             // },
             prevent_particle_ejecting: true,
         },
+        ParticleSimulationMetadata::default(),
         50,
         5.0,
     );
@@ -56,7 +59,6 @@ fn new_simulation() -> ParticleSimulation {
 #[macroquad::main(window_conf)]
 async fn main() {
     let mut simulation = new_simulation();
-    let thread_data = SimulationThreadData::default();
 
     let mut simulation_camera = Camera2D::default();
     center_camera(&mut simulation_camera, simulation.size_vec2());
@@ -68,60 +70,74 @@ async fn main() {
     };
 
     let (simulation_tx, simulation_rx) = mpsc::channel::<ParticleSimulation>();
-    let thread_data_mutex = Arc::new(Mutex::new(thread_data));
+    let (user_input_tx, user_input_rx) = mpsc::channel::<ParticleSimulation>();
 
     let mut simulation_buffer = simulation.clone();
 
-    // Simulation
-    let thread_data_reference = Arc::clone(&thread_data_mutex);
-
     let simulation_thread_builder = thread::Builder::new().name("simulation".to_owned());
     let simulation_thread = simulation_thread_builder.spawn(move || {
-        let update_time = Duration::from_secs_f64(1.0 / 30.0);
-
         let mut time = None;
         loop {
-            // Set the target frame end time
-            let frame_end = Instant::now() + update_time;
-
             let start = Instant::now();
-            let limit_tps;
 
-            'update: {
-                'simulate: {
-                    {
-                        let mut thread_data = thread_data_reference.lock().unwrap();
-
-                        limit_tps = thread_data.limit_tps;
-
-                        if thread_data.active {
-                            thread_data.tick_time = time;
-                        } else {
-                            thread_data.tick_time = None;
-                        }
-
-                        if thread_data.reset {
-                            simulation = new_simulation();
-                            thread_data.reset = false;
-                            break 'simulate;
-                        }
-
-                        if !thread_data.active {
-                            break 'update;
-                        }
+            // Copy latest simulation to buffer
+            loop {
+                match user_input_rx.try_recv() {
+                    Ok(simulation_buffer) => {
+                        simulation = simulation_buffer;
                     }
-
-                    // Update buffer
-                    simulation.step_simulation();
+                    Err(error) => match error {
+                        mpsc::TryRecvError::Empty => {
+                            break;
+                        }
+                        mpsc::TryRecvError::Disconnected => {
+                            panic!("Simulation thread disconnected");
+                        }
+                    },
                 }
-
-                // Send simulation data to render thread
-                simulation_tx
-                    .send(simulation.clone())
-                    .expect("Error sending simulation");
             }
 
-            if limit_tps {
+            let frame_end = (simulation.metadata.tps_limit)
+                .map(|tps_limit| start + Duration::from_secs_f64(1.0 / tps_limit as f64));
+
+            {
+                // {
+                //     let mut thread_data = thread_data_reference.lock().unwrap();
+                //
+                //     limit_tps = thread_data.limit_tps;
+                //
+                //     if thread_data.active {
+                //         thread_data.tick_time = time;
+                //     } else {
+                //         thread_data.tick_time = None;
+                //     }
+                //
+                //     if thread_data.reset {
+                //         simulation = new_simulation();
+                //         thread_data.reset = false;
+                //         break 'simulate;
+                //     }
+                //
+                //     if !thread_data.active {
+                //         break 'update;
+                //     }
+                // }
+
+                if simulation.metadata.is_active {
+                    simulation.step_simulation();
+
+                    simulation.metadata.tick_time = time;
+
+                    // Send simulation data to render thread
+                    simulation_tx
+                        .send(simulation.clone())
+                        .expect("Error sending simulation to user input");
+                } else {
+                    simulation.metadata.tick_time = None;
+                }
+            }
+
+            if let Some(frame_end) = frame_end {
                 // Wait if there's time left
                 thread::sleep(frame_end - Instant::now());
             }
@@ -135,8 +151,9 @@ async fn main() {
     let mut debug_level: u8 = 0;
     let mut fullscreen = false;
 
+    let mut updated = false;
+
     // Rendering and user input
-    let thread_data_reference = Arc::clone(&thread_data_mutex);
     loop {
         // Panic if the simulation thread is no longer running
         if simulation_thread.is_finished() {
@@ -147,23 +164,6 @@ async fn main() {
             fullscreen ^= true;
             window::set_fullscreen(fullscreen);
             input::show_mouse(!fullscreen);
-        }
-
-        // Copy latest simulation to buffer
-        loop {
-            match simulation_rx.try_recv() {
-                Ok(simulation) => {
-                    simulation_buffer = simulation;
-                }
-                Err(error) => match error {
-                    mpsc::TryRecvError::Empty => {
-                        break;
-                    }
-                    mpsc::TryRecvError::Disconnected => {
-                        panic!("Simulation thread disconnected");
-                    }
-                },
-            }
         }
 
         // Camera control
@@ -178,17 +178,53 @@ async fn main() {
         update_camera_aspect_ratio(&mut simulation_camera);
         camera::set_camera(&simulation_camera);
 
-        // Update thread_data
-        let (tick_time, limit_tps) = {
-            let mut thread_data = thread_data_reference.lock().unwrap();
+        // Copy latest simulation to buffer
+        loop {
+            match simulation_rx.try_recv() {
+                Ok(simulation) => {
+                    if !updated {
+                        simulation_buffer = simulation;
+                    }
+                }
+                Err(error) => match error {
+                    mpsc::TryRecvError::Empty => {
+                        break;
+                    }
+                    mpsc::TryRecvError::Disconnected => {
+                        panic!("Simulation thread disconnected");
+                    }
+                },
+            }
+        }
 
-            thread_data.active ^= input::is_key_pressed(KeyCode::Space);
-            thread_data.reset |= input::is_key_pressed(KeyCode::R);
+        updated = false;
 
-            thread_data.limit_tps ^= input::is_key_pressed(KeyCode::L) && thread_data.active;
+        if input::is_key_pressed(KeyCode::Space) {
+            simulation_buffer.metadata.is_active ^= true;
+            updated = true;
+        }
 
-            (thread_data.tick_time, thread_data.limit_tps)
-        };
+        if input::is_key_pressed(KeyCode::R) {
+            simulation_buffer = new_simulation();
+            updated = true;
+        }
+
+        if input::is_key_pressed(KeyCode::L) {
+            simulation_buffer.metadata.tps_limit = if simulation_buffer.metadata.tps_limit.is_none()
+            {
+                ParticleSimulationMetadata::default().tps_limit
+            } else {
+                None
+            };
+            updated = true;
+        }
+
+        if updated {
+            // Send the simulation buffer back
+            user_input_tx
+                .send(simulation_buffer.clone())
+                .expect("Error sending user input to simulation");
+        }
 
         // Center control
         if input::is_key_pressed(KeyCode::C) {
@@ -225,13 +261,17 @@ async fn main() {
                 colors::WHITE,
             );
 
-            if let Some(tick_time) = tick_time {
+            if let Some(tick_time) = simulation_buffer.metadata.tick_time {
                 let tps = (1.0 / tick_time.as_secs_f64()).round();
                 text::draw_text(&format!("TPS: {tps}"), 4.0, 50.0, 32.0, colors::WHITE);
 
-                if !limit_tps {
-                    text::draw_text(&format!("unlimited"), 4.0, 76.0, 32.0, colors::WHITE);
-                }
+                let tps_message = if let Some(tps_limit) = simulation_buffer.metadata.tps_limit {
+                    &format!("target: {tps_limit}")
+                } else {
+                    "unlimited"
+                };
+
+                text::draw_text(tps_message, 4.0, 76.0, 32.0, colors::WHITE);
             }
         }
 
@@ -273,22 +313,4 @@ fn center_camera(camera: &mut Camera2D, simulation_size: Vec2) {
 
 fn update_camera_aspect_ratio(camera: &mut Camera2D) {
     camera.zoom.x = camera.zoom.y * window::screen_height() / window::screen_width();
-}
-
-pub struct SimulationThreadData {
-    pub active: bool,
-    pub reset: bool,
-    pub tick_time: Option<Duration>,
-    pub limit_tps: bool,
-}
-
-impl Default for SimulationThreadData {
-    fn default() -> Self {
-        Self {
-            active: true,
-            reset: false,
-            tick_time: None,
-            limit_tps: true,
-        }
-    }
 }
