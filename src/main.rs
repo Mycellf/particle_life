@@ -69,7 +69,7 @@ async fn main() {
         ..Default::default()
     };
 
-    let (simulation_tx, simulation_rx) = mpsc::channel::<ParticleSimulation>();
+    let (simulation_tx, simulation_rx) = mpsc::channel::<(ParticleSimulation, bool)>();
     let (user_input_tx, user_input_rx) = mpsc::channel::<ParticleSimulation>();
 
     let mut simulation_buffer = simulation.clone();
@@ -80,10 +80,13 @@ async fn main() {
         loop {
             let start = Instant::now();
 
+            let mut update_recieved = false;
+
             // Copy latest simulation to buffer
             loop {
                 match user_input_rx.try_recv() {
                     Ok(simulation_buffer) => {
+                        update_recieved = true;
                         simulation = simulation_buffer;
                     }
                     Err(error) => match error {
@@ -130,7 +133,7 @@ async fn main() {
 
                     // Send simulation data to render thread
                     simulation_tx
-                        .send(simulation.clone())
+                        .send((simulation.clone(), update_recieved))
                         .expect("Error sending simulation to user input");
                 } else {
                     simulation.metadata.tick_time = None;
@@ -181,8 +184,8 @@ async fn main() {
         // Copy latest simulation to buffer
         loop {
             match simulation_rx.try_recv() {
-                Ok(simulation) => {
-                    if !updated {
+                Ok((simulation, update_recieved)) => {
+                    if update_recieved || !updated {
                         simulation_buffer = simulation;
                     }
                 }
