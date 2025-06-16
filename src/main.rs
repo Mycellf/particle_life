@@ -72,7 +72,9 @@ async fn main() {
 
     // Simulation
     let thread_data_reference = Arc::clone(&thread_data_mutex);
-    let simulation_thread = thread::spawn(move || {
+
+    let simulation_thread_builder = thread::Builder::new().name("simulation".to_owned());
+    let simulation_thread = simulation_thread_builder.spawn(move || {
         let update_time = Duration::from_secs_f64(1.0 / 30.0);
 
         let mut time = None;
@@ -125,6 +127,8 @@ async fn main() {
             time = Some(Instant::now() - start);
         }
     });
+
+    let simulation_thread = simulation_thread.unwrap();
 
     let mut debug_level: u8 = 0;
     let mut fullscreen = false;
