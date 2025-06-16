@@ -94,7 +94,7 @@ async fn main() {
                             break;
                         }
                         mpsc::TryRecvError::Disconnected => {
-                            panic!("Simulation thread disconnected");
+                            panic!("User input thread disconnected");
                         }
                     },
                 }
@@ -149,7 +149,7 @@ async fn main() {
         }
     });
 
-    let simulation_thread = simulation_thread.unwrap();
+    simulation_thread.unwrap();
 
     let mut debug_level: u8 = 0;
     let mut fullscreen = false;
@@ -158,11 +158,6 @@ async fn main() {
 
     // Rendering and user input
     loop {
-        // Panic if the simulation thread is no longer running
-        if simulation_thread.is_finished() {
-            panic!("Simulation thread panicked");
-        }
-
         if input::is_key_pressed(KeyCode::F11) {
             fullscreen ^= true;
             window::set_fullscreen(fullscreen);
