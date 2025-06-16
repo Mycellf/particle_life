@@ -177,6 +177,16 @@ async fn main() {
 
         let mut updated = false;
 
+        egui_macroquad::ui(|egui| {
+            egui.set_zoom_factor(macroquad::window::screen_dpi_scale());
+
+            egui::Window::new("Settings")
+                .resizable(false)
+                .show(egui, |ui| {
+                    ui.label("Test");
+                });
+        });
+
         if input::is_key_pressed(KeyCode::Space) {
             simulation_buffer.metadata.is_active ^= true;
             updated = true;
@@ -259,6 +269,8 @@ async fn main() {
                 text::draw_text(tps_message, 4.0, 76.0, 32.0, colors::WHITE);
             }
         }
+
+        egui_macroquad::draw();
 
         window::next_frame().await;
     }
