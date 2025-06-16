@@ -203,7 +203,7 @@ async fn main() {
             simulation_buffer.metadata.update_generation =
                 (simulation_buffer.metadata.update_generation)
                     .checked_add(1)
-                    .expect("Too many updates (update_generation overflowed)");
+                    .expect("update_generation overflowed (this should not happen for at least a billion years)");
 
             // Send the simulation buffer back
             user_input_tx
