@@ -230,6 +230,9 @@ async fn main() {
 
                     ui.label(format!("TPS: {tps}"));
                     ui.label(format!("MSPT: {mspt}"));
+                } else {
+                    ui.label("TPS: --");
+                    ui.label("MSPT: --");
                 }
 
                 // TPS Slider
