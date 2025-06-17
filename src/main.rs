@@ -207,7 +207,9 @@ async fn main() {
                 return;
             }
 
-            let window = egui::Window::new("Settings").resizable(false);
+            let window = egui::Window::new("Settings")
+                .collapsible(false)
+                .resizable(false);
 
             window.show(egui, |ui| {
                 const TPS_RANGE: RangeInclusive<usize> = 10..=240;
