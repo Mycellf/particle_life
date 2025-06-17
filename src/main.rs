@@ -267,12 +267,19 @@ async fn main() {
                     if tps_limit_input != simulation_buffer.metadata.tps_limit {
                         tps_limit_buffer = tps_limit_input_buffer;
 
-                        updated = true;
                         simulation_buffer.metadata.tps_limit = tps_limit_input;
+                        updated = true;
                     }
                 }
 
                 ui.separator();
+
+                if ui.add(egui::Button::new("Reset")).clicked() {
+                    let mut new_simulation = new_simulation();
+                    new_simulation.metadata = simulation_buffer.metadata;
+                    simulation_buffer = new_simulation;
+                    updated = true;
+                }
 
                 // Window hiding instructions
                 ui.add_enabled(
@@ -292,13 +299,6 @@ async fn main() {
 
             if input::is_key_pressed(KeyCode::Space) {
                 simulation_buffer.metadata.is_active ^= true;
-                updated = true;
-            }
-
-            if input::is_key_pressed(KeyCode::R) {
-                let mut new_simulation = new_simulation();
-                new_simulation.metadata = simulation_buffer.metadata;
-                simulation_buffer = new_simulation;
                 updated = true;
             }
         }
