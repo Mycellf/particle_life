@@ -35,6 +35,7 @@ pub struct ParticleSimulationParams {
 #[derive(Clone, Copy, Debug)]
 pub struct ParticleSimulationMetadata {
     pub is_active: bool,
+    pub steps: usize,
     pub total_time: Option<Duration>,
     pub tick_time: Option<Duration>,
     pub tps_limit: Option<usize>,
@@ -45,6 +46,7 @@ impl Default for ParticleSimulationMetadata {
     fn default() -> Self {
         Self {
             is_active: true,
+            steps: 0,
             total_time: None,
             tick_time: None,
             tps_limit: Some(30),
