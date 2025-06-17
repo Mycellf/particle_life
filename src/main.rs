@@ -22,8 +22,8 @@ pub(crate) mod particle_simulation;
 fn window_conf() -> Conf {
     Conf {
         window_title: "Particle Life".to_string(),
-        window_width: 900,
-        window_height: 600,
+        window_width: 1800,
+        window_height: 1200,
         ..Default::default()
     }
 }
