@@ -303,6 +303,10 @@ async fn main() {
                 1.1,
             );
 
+            if input::is_key_pressed(KeyCode::C) || input::is_key_pressed(KeyCode::Home) {
+                center_camera(&mut simulation_camera, simulation_buffer.size_vec2());
+            }
+
             if input::is_key_pressed(KeyCode::Space) {
                 simulation_buffer.metadata.is_active ^= true;
                 updated = true;
@@ -319,11 +323,6 @@ async fn main() {
             user_input_tx
                 .send(simulation_buffer.clone())
                 .expect("Error sending user input to simulation");
-        }
-
-        // Center control
-        if input::is_key_pressed(KeyCode::C) {
-            center_camera(&mut simulation_camera, simulation_buffer.size_vec2());
         }
 
         // Debug view control
