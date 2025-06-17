@@ -148,6 +148,19 @@ async fn main() {
 
     simulation_thread.unwrap();
 
+    egui_macroquad::cfg(|egui| {
+        let base_visuals = egui::Visuals::dark();
+
+        egui.set_visuals(egui::Visuals {
+            window_shadow: egui::Shadow {
+                offset: [0, 0],
+                spread: 15,
+                ..base_visuals.window_shadow
+            },
+            ..base_visuals
+        });
+    });
+
     let mut debug = false;
 
     let mut info_window = true;
@@ -201,17 +214,6 @@ async fn main() {
 
         egui_macroquad::ui(|egui| {
             egui.set_zoom_factor(window::screen_dpi_scale());
-
-            let base_visuals = egui::Visuals::dark();
-
-            egui.set_visuals(egui::Visuals {
-                window_shadow: egui::Shadow {
-                    offset: [0, 0],
-                    spread: 15,
-                    ..base_visuals.window_shadow
-                },
-                ..base_visuals
-            });
 
             let info_window_copy = info_window;
 
