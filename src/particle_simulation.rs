@@ -192,52 +192,65 @@ impl ParticleSimulation {
     }
 
     fn organize_particles(&mut self) {
-        for bucket_x in 0..self.buckets.size[0] {
-            for bucket_y in 0..self.buckets.size[1] {
-                let bucket_index = [bucket_x, bucket_y];
+        let disorganized_particles = (self.buckets.data.par_iter_mut())
+            .enumerate()
+            .map(|(i, bucket)| {
+                let bucket_index = [i % self.buckets.size[0], i / self.buckets.size[0]];
+
+                let min_corner = bucket_index.map(|x| x as Real * self.bucket_size);
+                let max_corner = min_corner.map(|x| x + self.bucket_size);
+
+                let mut disorganized_particles = Vec::new();
 
                 let mut i = 0;
-                while i < self.buckets[bucket_index].len() {
-                    let mut particle = self.buckets[bucket_index][i];
+                while i < bucket.len() {
+                    let particle = bucket[i];
 
-                    let index = self.bucket_index_of_position(particle.position);
-                    if index == Some(bucket_index) {
+                    if particle.position[0] >= min_corner[0]
+                        && particle.position[0] <= max_corner[0]
+                        && particle.position[1] >= min_corner[1]
+                        && particle.position[1] <= max_corner[1]
+                    {
                         i += 1;
                     } else {
-                        self.buckets[bucket_index].swap_remove(i);
-
-                        if let Some(index) = index {
-                            self.buckets[index].push(particle);
-                        } else {
-                            // Edge handling
-                            match self.params.edge_type {
-                                EdgeType::Wrapping => {
-                                    let size = self.size();
-                                    particle.position[0] = particle.position[0].rem_euclid(size[0]);
-                                    particle.position[1] = particle.position[1].rem_euclid(size[1]);
-                                    self.insert_particle(particle);
-                                }
-                                EdgeType::Bouncing {
-                                    multiplier,
-                                    pushback,
-                                } => {
-                                    let direction = particle.constrain_to_size(self.size());
-                                    if direction[0] != 0.0 {
-                                        particle.velocity[0] =
-                                            (particle.velocity[0].abs() * multiplier + pushback)
-                                                * direction[0];
-                                    }
-                                    if direction[1] != 0.0 {
-                                        particle.velocity[1] =
-                                            (particle.velocity[1].abs() * multiplier + pushback)
-                                                * direction[1];
-                                    }
-                                    self.insert_particle(particle);
-                                }
-                                EdgeType::Deleting => (),
-                            }
-                        }
+                        disorganized_particles.push(bucket.swap_remove(i));
                     }
+                }
+
+                disorganized_particles
+            })
+            .collect_vec_list();
+
+        for mut particle in disorganized_particles.into_iter().flatten().flatten() {
+            let index = self.bucket_index_of_position(particle.position);
+
+            if let Some(index) = index {
+                self.buckets[index].push(particle);
+            } else {
+                // Edge handling
+                match self.params.edge_type {
+                    EdgeType::Wrapping => {
+                        let size = self.size();
+                        particle.position[0] = particle.position[0].rem_euclid(size[0]);
+                        particle.position[1] = particle.position[1].rem_euclid(size[1]);
+                        self.insert_particle(particle);
+                    }
+                    EdgeType::Bouncing {
+                        multiplier,
+                        pushback,
+                    } => {
+                        let direction = particle.constrain_to_size(self.size());
+                        if direction[0] != 0.0 {
+                            particle.velocity[0] =
+                                (particle.velocity[0].abs() * multiplier + pushback) * direction[0];
+                        }
+                        if direction[1] != 0.0 {
+                            particle.velocity[1] =
+                                (particle.velocity[1].abs() * multiplier + pushback) * direction[1];
+                        }
+                        self.insert_particle(particle);
+                    }
+                    EdgeType::Deleting => (),
                 }
             }
         }
