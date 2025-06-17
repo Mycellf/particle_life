@@ -146,7 +146,7 @@ async fn main() {
     simulation_thread.unwrap();
 
     let mut debug = false;
-    let mut settings = true;
+    let mut info_window = true;
 
     let mut fullscreen = false;
 
@@ -193,21 +193,21 @@ async fn main() {
             && !input::is_key_down(KeyCode::LeftShift)
             && !input::is_key_down(KeyCode::RightShift)
         {
-            settings ^= true;
+            info_window ^= true;
         }
 
         egui_macroquad::ui(|egui| {
             egui.set_zoom_factor(macroquad::window::screen_dpi_scale());
 
-            if !settings || input::is_key_down(KeyCode::Escape) {
+            if !info_window || input::is_key_down(KeyCode::Escape) {
                 tps_limit_input_buffer = tps_limit_buffer;
             }
 
-            if !settings {
+            if !info_window {
                 return;
             }
 
-            let window = egui::Window::new("Settings")
+            let window = egui::Window::new("Info")
                 .collapsible(false)
                 .resizable(false);
 
