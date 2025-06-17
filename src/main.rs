@@ -191,10 +191,7 @@ async fn main() {
 
         let mut window_toggled = false;
 
-        if input::is_key_pressed(KeyCode::Escape)
-            && !input::is_key_down(KeyCode::LeftShift)
-            && !input::is_key_down(KeyCode::RightShift)
-        {
+        if input::is_key_pressed(KeyCode::Escape) {
             info_window ^= true;
             window_toggled = true;
         }
@@ -202,20 +199,19 @@ async fn main() {
         egui_macroquad::ui(|egui| {
             egui.set_zoom_factor(macroquad::window::screen_dpi_scale());
 
-            if !info_window || input::is_key_down(KeyCode::Escape) {
-                tps_limit_input_buffer = tps_limit_buffer;
-            }
-
-            if !info_window {
-                return;
-            }
+            let info_window_copy = info_window;
 
             let mut window = egui::Window::new("Info")
+                .open(&mut info_window)
                 .collapsible(false)
                 .resizable(false);
 
             if window_toggled {
-                window = window.current_pos([20.0, 20.0]);
+                if info_window_copy {
+                    window = window.current_pos([20.0, 20.0]);
+                }
+
+                tps_limit_input_buffer = tps_limit_buffer;
             }
 
             window.show(egui, |ui| {
