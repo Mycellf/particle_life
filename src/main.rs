@@ -81,9 +81,7 @@ async fn main() {
                 match user_input_rx.try_recv() {
                     Ok(simulation_buffer) => {
                         // simulation = simulation_buffer;
-                        if simulation_buffer.metadata.update_generation
-                            >= simulation.metadata.update_generation
-                        {
+                        if simulation_buffer.metadata.update_id >= simulation.metadata.update_id {
                             simulation = simulation_buffer;
                         }
                     }
@@ -169,9 +167,7 @@ async fn main() {
         loop {
             match simulation_rx.try_recv() {
                 Ok(simulation) => {
-                    if simulation.metadata.update_generation
-                        >= simulation_buffer.metadata.update_generation
-                    {
+                    if simulation.metadata.update_id >= simulation_buffer.metadata.update_id {
                         simulation_buffer = simulation;
                     }
                 }
@@ -314,10 +310,11 @@ async fn main() {
         }
 
         if updated {
-            simulation_buffer.metadata.update_generation =
-                (simulation_buffer.metadata.update_generation)
-                    .checked_add(1)
-                    .expect("update_generation overflowed (this should not happen for at least a billion years)");
+            simulation_buffer.metadata.update_id = (simulation_buffer.metadata.update_id)
+                .checked_add(1)
+                .expect(
+                    "update_id overflowed (this should not happen for at least a billion years)",
+                );
 
             // Send the simulation buffer back
             user_input_tx

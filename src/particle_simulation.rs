@@ -38,7 +38,7 @@ pub struct ParticleSimulationMetadata {
     pub total_time: Option<Duration>,
     pub tick_time: Option<Duration>,
     pub tps_limit: Option<usize>,
-    pub update_generation: u64,
+    pub update_id: u64,
 }
 
 impl Default for ParticleSimulationMetadata {
@@ -48,7 +48,7 @@ impl Default for ParticleSimulationMetadata {
             total_time: None,
             tick_time: None,
             tps_limit: Some(30),
-            update_generation: 0,
+            update_id: 0,
         }
     }
 }
