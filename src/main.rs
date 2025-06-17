@@ -222,7 +222,8 @@ async fn main() {
                 .open(&mut info_window)
                 .title_bar(false)
                 .resizable(false)
-                .movable(false);
+                .movable(false)
+                .max_width(340.0);
 
             if window_toggled && info_window_copy {
                 window = window.current_pos([20.0, 20.0]);
