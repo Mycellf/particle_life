@@ -78,8 +78,6 @@ impl ParticleSimulation {
     }
 
     fn move_particles(&mut self) {
-        let wrap_edges = matches!(self.params.edge_type, EdgeType::Wrapping);
-
         let maximum_distance_squared = self.bucket_size.powi(2);
 
         // Update particle impulses
@@ -136,7 +134,7 @@ impl ParticleSimulation {
                                     impulse,
                                 );
                             }
-                        } else if wrap_edges {
+                        } else if matches!(self.params.edge_type, EdgeType::Wrapping) {
                             let neighbor_bucket_index = [
                                 bucket_index[0].checked_add_signed(bucket_relative_index[0]),
                                 bucket_index[1].checked_add_signed(bucket_relative_index[1]),
