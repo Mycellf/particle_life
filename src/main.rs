@@ -271,9 +271,14 @@ async fn main() {
                                     .on_hover_text("Milliseconds per tick");
                             }
                         } else {
-                            columns[1]
+                            if columns[1]
                                 .colored_label(columns[1].visuals().warn_fg_color, "Paused")
-                                .on_hover_text("Space to unpause");
+                                .on_hover_text("Space to unpause")
+                                .clicked()
+                            {
+                                simulation_buffer.metadata.is_active = true;
+                                updated = true;
+                            }
                         }
                     },
                 );
