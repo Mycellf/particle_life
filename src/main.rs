@@ -187,7 +187,7 @@ async fn main() {
 
         let mut window_toggled = false;
 
-        if input::is_key_pressed(KeyCode::F1) {
+        if input::is_key_pressed(KeyCode::Escape) {
             info_window ^= true;
             window_toggled = true;
         }
@@ -286,7 +286,7 @@ async fn main() {
                 // Window hiding instructions
                 ui.add_enabled(
                     false,
-                    egui::Label::new("Press F1 to show/hide this window."),
+                    egui::Label::new("Press escape to show/hide this window."),
                 );
             });
         });
