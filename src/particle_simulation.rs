@@ -73,6 +73,11 @@ impl ParticleSimulation {
     }
 
     pub fn step_simulation(&mut self) {
+        self.move_particles();
+        self.organize_particles();
+    }
+
+    fn move_particles(&mut self) {
         let wrap_edges = matches!(self.params.edge_type, EdgeType::Wrapping);
 
         let maximum_distance_squared = self.bucket_size.powi(2);
@@ -185,8 +190,9 @@ impl ParticleSimulation {
             // Clear impulses to make cloning the simulation to the render thread faster
             impulses.clear();
         }
+    }
 
-        // Organize particles
+    fn organize_particles(&mut self) {
         for bucket_x in 0..self.buckets.size[0] {
             for bucket_y in 0..self.buckets.size[1] {
                 let bucket_index = [bucket_x, bucket_y];
@@ -418,7 +424,6 @@ impl Particle {
         self.velocity = self.velocity.map(|x| x * 0.9);
     }
 
-    #[inline(always)]
     pub fn update_impulse_with_particle(
         &self,
         other: Particle,
@@ -434,7 +439,7 @@ impl Particle {
                 fn random() -> Real {
                     use macroquad::rand;
 
-                    rand::gen_range(0.0000001, 0.1) * if rand::rand() & 1 != 0 { 1.0 } else { -1.0 }
+                    rand::gen_range(1e-7, 0.1) * if rand::rand() & 1 != 0 { 1.0 } else { -1.0 }
                 }
 
                 [random(), random()]
