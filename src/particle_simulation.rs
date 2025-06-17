@@ -196,7 +196,9 @@ impl ParticleSimulation {
                     let mut particle = self.buckets[bucket_index][i];
 
                     let index = self.bucket_index_of_position(particle.position);
-                    if index != Some(bucket_index) {
+                    if index == Some(bucket_index) {
+                        i += 1;
+                    } else {
                         self.buckets[bucket_index].swap_remove(i);
 
                         if let Some(index) = index {
@@ -230,8 +232,6 @@ impl ParticleSimulation {
                                 EdgeType::Deleting => (),
                             }
                         }
-                    } else {
-                        i += 1;
                     }
                 }
             }
@@ -297,13 +297,13 @@ impl ParticleSimulation {
         // counting step
         let mut indecies = vec![0; self.type_data.num_types()].into_boxed_slice();
 
-        for particle in particles.iter() {
+        for particle in &particles {
             indecies[particle.typ] += 1;
         }
 
         // indexing step
         let mut sum = 0;
-        for index in indecies.iter_mut() {
+        for index in &mut indecies {
             let temp = sum;
             sum += *index;
             *index = temp;
@@ -319,7 +319,7 @@ impl ParticleSimulation {
         // Draw particles
         material::gl_use_material(&PARTICLE_MATERIAL);
 
-        for particle in particles_sorted.into_iter() {
+        for particle in particles_sorted {
             let position = [
                 particle.position[0] as f32 + position.x,
                 particle.position[1] as f32 + position.y,
@@ -427,12 +427,7 @@ impl Particle {
         max_distance_squared: Real,
         impulse: &mut [Real; 2],
     ) {
-        let delta_position = if self.position != other.position {
-            [
-                other.position[0] - self.position[0],
-                other.position[1] - self.position[1],
-            ]
-        } else {
+        let delta_position = if self.position == other.position {
             #[cold]
             #[inline(never)]
             fn random_vector() -> [Real; 2] {
@@ -446,6 +441,11 @@ impl Particle {
             }
 
             random_vector()
+        } else {
+            [
+                other.position[0] - self.position[0],
+                other.position[1] - self.position[1],
+            ]
         };
 
         let distance_squared = delta_position[0].powi(2) + delta_position[1].powi(2);
@@ -539,7 +539,7 @@ pub static PARTICLE_MATERIAL: LazyLock<Material> = LazyLock::new(|| {
     .unwrap()
 });
 
-const CIRCLE_VERTEX_SHADER: &str = r#"
+const CIRCLE_VERTEX_SHADER: &str = r"
     #version 100
     precision lowp float;
 
@@ -557,9 +557,9 @@ const CIRCLE_VERTEX_SHADER: &str = r#"
         color = color0 / 255.0;
         uv = texcoord;
     }
-"#;
+";
 
-const CIRCLE_FRAGMENT_SHADER: &str = r#"
+const CIRCLE_FRAGMENT_SHADER: &str = r"
     #version 100
     precision lowp float;
 
@@ -575,4 +575,4 @@ const CIRCLE_FRAGMENT_SHADER: &str = r#"
 
         gl_FragColor = color;
     }
-"#;
+";

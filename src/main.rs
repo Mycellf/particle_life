@@ -132,14 +132,14 @@ async fn main() {
                 }
             }
 
-            tick_time = Some(Instant::now() - start);
+            tick_time = Some(start.elapsed());
 
             if let Some(frame_end) = frame_end {
                 // Wait if there's time left
                 thread::sleep(frame_end - Instant::now());
             }
 
-            total_time = Some(Instant::now() - start);
+            total_time = Some(start.elapsed());
         }
     });
 
@@ -346,8 +346,10 @@ fn update_camera_control(
     zoom_base: f32,
 ) {
     let motion = vec2(
-        input::is_key_down(KeyCode::D) as u32 as f32 - input::is_key_down(KeyCode::A) as u32 as f32,
-        input::is_key_down(KeyCode::S) as u32 as f32 - input::is_key_down(KeyCode::W) as u32 as f32,
+        u32::from(input::is_key_down(KeyCode::D)) as f32
+            - u32::from(input::is_key_down(KeyCode::A)) as f32,
+        u32::from(input::is_key_down(KeyCode::S)) as f32
+            - u32::from(input::is_key_down(KeyCode::W)) as f32,
     ) * (time::get_frame_time() * pan_speed / camera.zoom.y)
         * if input::is_key_down(KeyCode::LeftShift) {
             2.0
