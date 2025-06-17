@@ -206,7 +206,7 @@ async fn main() {
         }
 
         egui_macroquad::ui(|egui| {
-            egui.set_zoom_factor(macroquad::window::screen_dpi_scale());
+            egui.set_zoom_factor(window::screen_dpi_scale());
 
             let base_visuals = egui::Visuals::dark();
 
