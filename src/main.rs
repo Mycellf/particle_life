@@ -235,22 +235,48 @@ async fn main() {
                     *TPS_RANGE.start()..=*TPS_RANGE.end() + 1;
 
                 // FPS/TPS Info
-                ui.columns(3, |columns| {
-                    columns[0].label(format!("FPS: {}", time::get_fps()));
+                ui.columns(
+                    if simulation_buffer.metadata.is_active {
+                        3
+                    } else {
+                        2
+                    },
+                    |columns| {
+                        columns[0]
+                            .label(format!("FPS: {}", time::get_fps()))
+                            .on_hover_text("Frames per second");
 
-                    if let ParticleSimulationMetadata {
-                        total_time: Some(total_time),
-                        tick_time: Some(tick_time),
-                        ..
-                    } = simulation_buffer.metadata
-                    {
-                        let tps = (1.0 / total_time.as_secs_f64()).round();
-                        let mspt = tick_time.as_millis();
+                        if simulation_buffer.metadata.is_active {
+                            if let ParticleSimulationMetadata {
+                                total_time: Some(total_time),
+                                ..
+                            } = simulation_buffer.metadata
+                            {
+                                let tps = (1.0 / total_time.as_secs_f64()).round();
 
-                        columns[1].label(format!("TPS: {tps}"));
-                        columns[2].label(format!("MSPT: {mspt}"));
-                    }
-                });
+                                columns[1]
+                                    .label(format!("TPS: {tps}"))
+                                    .on_hover_text("Ticks per Second");
+                            }
+
+                            if let ParticleSimulationMetadata {
+                                tick_time: Some(tick_time),
+                                ..
+                            } = simulation_buffer.metadata
+                            {
+                                let mspt = tick_time.as_millis();
+
+                                columns[2]
+                                    .label(format!("MSPT: {mspt}"))
+                                    .on_hover_text("Milliseconds per tick");
+                            }
+                        } else {
+                            columns[1]
+                                .colored_label(columns[1].visuals().warn_fg_color, "Paused")
+                                .on_hover_text("Space to unpause");
+                        }
+                    },
+                );
 
                 // TPS Slider
                 let slider_focused = ui
