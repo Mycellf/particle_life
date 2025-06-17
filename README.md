@@ -4,4 +4,4 @@ Each particle has a type, and each type has a different attraction value to each
 
 The simulation uses rayon parallelized buckets to improve performance. 
 
-The camera can be moved with `WASD`, and zoomed with the scroll wheel. Press `C` to center it on the simulation. 
+The camera can be moved with `WASD`, and zoomed with the scroll wheel. Press `C` or `Home` to center it on the simulation. 
