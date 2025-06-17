@@ -14,7 +14,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-use crate::particle_simulation::ParticleSimulationMetadata;
+use crate::particle_simulation::{ParticleSimulationMetadata, ParticleTypeData};
 
 pub(crate) mod matrix;
 pub(crate) mod particle_simulation;
@@ -30,10 +30,6 @@ fn window_conf() -> Conf {
 
 fn simulation_from_size(size: [usize; 2], density: Real) -> ParticleSimulation {
     let bucket_size: Real = 100.0;
-    let buckets = size[0] * size[1];
-    let area = buckets as Real * bucket_size.powi(2);
-    let particle_count = area * density;
-    let particle_count = particle_count as usize;
     let mut particle_simulation = ParticleSimulation::new(
         bucket_size,
         size,
@@ -46,11 +42,21 @@ fn simulation_from_size(size: [usize; 2], density: Real) -> ParticleSimulation {
             prevent_particle_ejecting: true,
         },
         ParticleSimulationMetadata::default(),
-        50,
-        5.0,
+        ParticleTypeData::new_random(50, 5.0),
     );
-    particle_simulation.add_random_particles(particle_count);
+    if density > 0.0 {
+        fill_simulation_with_particles(&mut particle_simulation, density);
+    }
     particle_simulation
+}
+
+fn fill_simulation_with_particles(particle_simulation: &mut ParticleSimulation, density: Real) {
+    particle_simulation.clear_particles();
+
+    let area = particle_simulation.size()[0] * particle_simulation.size()[1];
+    let particle_count = (area * density) as usize;
+
+    particle_simulation.add_random_particles(particle_count);
 }
 
 fn new_simulation() -> ParticleSimulation {
@@ -277,12 +283,23 @@ async fn main() {
 
                 ui.separator();
 
-                if ui.add(egui::Button::new("Reset")).clicked() {
-                    let mut new_simulation = new_simulation();
-                    new_simulation.metadata = simulation_buffer.metadata;
-                    simulation_buffer = new_simulation;
-                    updated = true;
-                }
+                // Buttons
+                ui.horizontal(|ui| {
+                    if ui.add(egui::Button::new("Clear")).clicked() {
+                        simulation_buffer.clear_particles();
+                        updated = true;
+                    }
+
+                    if ui.add(egui::Button::new("Randomize Attractions")).clicked() {
+                        simulation_buffer.type_data = ParticleTypeData::new_random(50, 5.0);
+                        updated = true;
+                    }
+
+                    if ui.add(egui::Button::new("Fill to Density")).clicked() {
+                        fill_simulation_with_particles(&mut simulation_buffer, 4e-3);
+                        updated = true;
+                    }
+                });
 
                 // Window hiding instructions
                 ui.add_enabled(
