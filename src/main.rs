@@ -231,13 +231,7 @@ async fn main() {
                     *TPS_RANGE.start()..=*TPS_RANGE.end() + 1;
 
                 // FPS/TPS Info
-                let num_columns = if simulation_buffer.metadata.is_active {
-                    3
-                } else {
-                    2
-                };
-
-                ui.columns(num_columns, |columns| {
+                ui.columns(3, |columns| {
                     columns[0]
                         .label(format!("FPS: {}", time::get_fps()))
                         .on_hover_text("Frames per second");
@@ -267,7 +261,7 @@ async fn main() {
                                 .on_hover_text("Milliseconds per tick");
                         }
                     } else {
-                        columns[1]
+                        columns[2]
                             .colored_label(columns[1].visuals().warn_fg_color, "Paused")
                             .on_hover_text("Space to unpause");
                     }
