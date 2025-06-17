@@ -201,7 +201,8 @@ async fn main() {
             let mut window = egui::Window::new("Info")
                 .open(&mut info_window)
                 .title_bar(false)
-                .resizable(false);
+                .resizable(false)
+                .movable(false);
 
             if window_toggled && info_window_copy {
                 window = window.current_pos([20.0, 20.0]);
@@ -217,23 +218,22 @@ async fn main() {
                     *TPS_RANGE.start()..=*TPS_RANGE.end() + 1;
 
                 // FPS/TPS Info
-                ui.label(format!("FPS: {}", time::get_fps()));
+                ui.columns(3, |columns| {
+                    columns[0].label(format!("FPS: {}", time::get_fps()));
 
-                if let ParticleSimulationMetadata {
-                    total_time: Some(total_time),
-                    tick_time: Some(tick_time),
-                    ..
-                } = simulation_buffer.metadata
-                {
-                    let tps = (1.0 / total_time.as_secs_f64()).round();
-                    let mspt = tick_time.as_millis();
+                    if let ParticleSimulationMetadata {
+                        total_time: Some(total_time),
+                        tick_time: Some(tick_time),
+                        ..
+                    } = simulation_buffer.metadata
+                    {
+                        let tps = (1.0 / total_time.as_secs_f64()).round();
+                        let mspt = tick_time.as_millis();
 
-                    ui.label(format!("TPS: {tps}"));
-                    ui.label(format!("MSPT: {mspt}"));
-                } else {
-                    ui.label("TPS: --");
-                    ui.label("MSPT: --");
-                }
+                        columns[1].label(format!("TPS: {tps}"));
+                        columns[2].label(format!("MSPT: {mspt}"));
+                    }
+                });
 
                 // TPS Slider
                 let slider_focused = ui
