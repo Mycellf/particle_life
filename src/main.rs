@@ -145,15 +145,11 @@ async fn main() {
     simulation_thread.unwrap();
 
     egui_macroquad::cfg(|egui| {
-        let base_visuals = egui::Visuals::dark();
+        egui.style_mut(|style| {
+            style.interaction.selectable_labels = false;
 
-        egui.set_visuals(egui::Visuals {
-            window_shadow: egui::Shadow {
-                offset: [0, 0],
-                spread: 15,
-                ..base_visuals.window_shadow
-            },
-            ..base_visuals
+            style.visuals.window_shadow.offset = [0, 0];
+            style.visuals.window_shadow.spread = 15;
         });
     });
 
