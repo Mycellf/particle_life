@@ -206,11 +206,11 @@ async fn main() {
                 .collapsible(false)
                 .resizable(false);
 
-            if window_toggled {
-                if info_window_copy {
-                    window = window.current_pos([20.0, 20.0]);
-                }
+            if window_toggled && info_window_copy {
+                window = window.current_pos([20.0, 20.0]);
+            }
 
+            if window_toggled || input::is_key_pressed(KeyCode::Escape) {
                 tps_limit_input_buffer = tps_limit_buffer;
             }
 
