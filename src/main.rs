@@ -333,17 +333,17 @@ async fn main() {
 
                 // Buttons
                 ui.horizontal(|ui| {
-                    if ui.add(egui::Button::new("Clear")).clicked() {
+                    if ui.button("Clear").clicked() {
                         simulation_buffer.clear_particles();
                         updated = true;
                     }
 
-                    if ui.add(egui::Button::new("Randomize Attractions")).clicked() {
+                    if ui.button("Randomize Attractions").clicked() {
                         simulation_buffer.type_data = ParticleTypeData::new_random(50, 5.0);
                         updated = true;
                     }
 
-                    if ui.add(egui::Button::new("Fill to Density")).clicked() {
+                    if ui.button("Fill to Density").clicked() {
                         fill_simulation_with_particles(&mut simulation_buffer, 4e-3);
                         updated = true;
                     }
