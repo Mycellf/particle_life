@@ -145,7 +145,9 @@ async fn main() {
 
     simulation_thread.unwrap();
 
-    let mut debug_level: u8 = 0;
+    let mut debug = false;
+    let mut settings = true;
+
     let mut fullscreen = false;
 
     let mut tps_limit_buffer = simulation_buffer.metadata.tps_limit.unwrap();
@@ -186,66 +188,80 @@ async fn main() {
         let mut updated = false;
         let mut egui_focused = false;
 
+        if input::is_key_pressed(KeyCode::Escape) {
+            settings ^= true;
+        }
+
         egui_macroquad::ui(|egui| {
             egui.set_zoom_factor(macroquad::window::screen_dpi_scale());
 
-            egui::Window::new("Settings")
-                .resizable(false)
-                .show(egui, |ui| {
-                    const TPS_RANGE: RangeInclusive<usize> = 10..=240;
-                    const TPS_INPUT_RANGE: RangeInclusive<usize> =
-                        *TPS_RANGE.start()..=*TPS_RANGE.end() + 1;
+            if !settings {
+                return;
+            }
 
-                    // FPS/TPS Info
-                    ui.label(format!("FPS: {}", time::get_fps()));
+            let window = egui::Window::new("Settings").resizable(false);
 
-                    if let ParticleSimulationMetadata {
-                        total_time: Some(total_time),
-                        tick_time: Some(tick_time),
-                        ..
-                    } = simulation_buffer.metadata
-                    {
-                        let tps = (1.0 / total_time.as_secs_f64()).round();
-                        let mspt = tick_time.as_millis();
+            window.show(egui, |ui| {
+                const TPS_RANGE: RangeInclusive<usize> = 10..=240;
+                const TPS_INPUT_RANGE: RangeInclusive<usize> =
+                    *TPS_RANGE.start()..=*TPS_RANGE.end() + 1;
 
-                        ui.label(format!("TPS: {tps}"));
-                        ui.label(format!("MSPT: {mspt}"));
-                    }
+                // FPS/TPS Info
+                ui.label(format!("FPS: {}", time::get_fps()));
 
-                    // TPS Slider
-                    egui_focused |= ui
-                        .add(
-                            egui::Slider::new(&mut tps_limit_buffer, TPS_INPUT_RANGE)
-                                .text("TPS Limit")
-                                .custom_parser(|input| {
-                                    let input = input.trim();
-                                    if input == "unlimited" {
-                                        Some(241.0)
-                                    } else {
-                                        input.parse().ok()
-                                    }
-                                })
-                                .custom_formatter(|number, _| {
-                                    if number <= 240.0 {
-                                        (number as usize).to_string()
-                                    } else {
-                                        "unlimited".to_owned()
-                                    }
-                                }),
-                        )
-                        .has_focus();
+                if let ParticleSimulationMetadata {
+                    total_time: Some(total_time),
+                    tick_time: Some(tick_time),
+                    ..
+                } = simulation_buffer.metadata
+                {
+                    let tps = (1.0 / total_time.as_secs_f64()).round();
+                    let mspt = tick_time.as_millis();
 
-                    let tps_limit_input = if tps_limit_buffer <= *TPS_INPUT_RANGE.end() {
-                        Some(tps_limit_buffer)
-                    } else {
-                        None
-                    };
+                    ui.label(format!("TPS: {tps}"));
+                    ui.label(format!("MSPT: {mspt}"));
+                }
 
-                    if tps_limit_input != simulation_buffer.metadata.tps_limit {
-                        updated = true;
-                        simulation_buffer.metadata.tps_limit = tps_limit_input;
-                    }
-                });
+                // TPS Slider
+                egui_focused |= ui
+                    .add(
+                        egui::Slider::new(&mut tps_limit_buffer, TPS_INPUT_RANGE)
+                            .text("TPS Limit")
+                            .custom_parser(|input| {
+                                let input = input.trim();
+                                if input == "unlimited" {
+                                    Some(241.0)
+                                } else {
+                                    input.parse().ok()
+                                }
+                            })
+                            .custom_formatter(|number, _| {
+                                if number <= 240.0 {
+                                    (number as usize).to_string()
+                                } else {
+                                    "unlimited".to_owned()
+                                }
+                            }),
+                    )
+                    .has_focus();
+
+                let tps_limit_input = if tps_limit_buffer <= *TPS_INPUT_RANGE.end() {
+                    Some(tps_limit_buffer)
+                } else {
+                    None
+                };
+
+                if tps_limit_input != simulation_buffer.metadata.tps_limit {
+                    updated = true;
+                    simulation_buffer.metadata.tps_limit = tps_limit_input;
+                }
+
+                // Window hiding instructions
+                ui.add_enabled(
+                    false,
+                    egui::Label::new("Press escape to show/hide this window"),
+                );
+            });
         });
 
         if !egui_focused {
@@ -288,21 +304,11 @@ async fn main() {
 
         // Debug view control
         if input::is_key_pressed(KeyCode::F3) {
-            let selected_debug_level = if input::is_key_down(KeyCode::LeftShift) {
-                2
-            } else {
-                1
-            };
-
-            if debug_level >= selected_debug_level {
-                debug_level = 0;
-            } else {
-                debug_level = selected_debug_level;
-            }
+            debug ^= true;
         }
 
         // Rendering
-        simulation_buffer.draw_at(vec2(0.0, 0.0), &simulation_camera, debug_level > 1);
+        simulation_buffer.draw_at(vec2(0.0, 0.0), &simulation_camera, debug);
 
         egui_macroquad::draw();
 
