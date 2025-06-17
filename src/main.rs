@@ -189,11 +189,14 @@ async fn main() {
         let mut updated = false;
         let mut egui_focused = false;
 
+        let mut window_toggled = false;
+
         if input::is_key_pressed(KeyCode::Escape)
             && !input::is_key_down(KeyCode::LeftShift)
             && !input::is_key_down(KeyCode::RightShift)
         {
             info_window ^= true;
+            window_toggled = true;
         }
 
         egui_macroquad::ui(|egui| {
@@ -211,7 +214,7 @@ async fn main() {
                 .collapsible(false)
                 .resizable(false);
 
-            if input::is_key_pressed(KeyCode::Escape) {
+            if window_toggled {
                 window = window.current_pos([20.0, 20.0]);
             }
 
