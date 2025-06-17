@@ -277,7 +277,7 @@ async fn main() {
                                 if ["unlimited", "infinity", "∞", "max"].contains(&input) {
                                     Some(*TPS_INPUT_RANGE.end() as f64)
                                 } else {
-                                    input.parse().ok()
+                                    parse_number_or_default(input, 30.0)
                                 }
                             })
                             .custom_formatter(|number, _| {
@@ -375,7 +375,8 @@ async fn main() {
                         enable_bouncing_editor,
                         egui::Slider::new(multiplier, 0.0..=1.0)
                             .clamping(egui::SliderClamping::Never)
-                            .text("Bounce velocity multiplier"),
+                            .text("Bounce velocity multiplier")
+                            .custom_parser(|input| parse_number_or_default(input, 1.0)),
                     )
                     .on_hover_text("Multiplied before additional velocity is applied")
                     .has_focus();
@@ -389,7 +390,8 @@ async fn main() {
                         enable_bouncing_editor,
                         egui::Slider::new(pushback, 0.0..=10.0)
                             .clamping(egui::SliderClamping::Never)
-                            .text("Bounce additional velocity"),
+                            .text("Bounce additional velocity")
+                            .custom_parser(|input| parse_number_or_default(input, 2.5)),
                     )
                     .on_hover_text("Added after the multiplier is applied")
                     .has_focus();
@@ -509,4 +511,14 @@ fn center_camera(camera: &mut Camera2D, simulation_size: Vec2) {
 
 fn update_camera_aspect_ratio(camera: &mut Camera2D) {
     camera.zoom.x = camera.zoom.y * window::screen_height() / window::screen_width();
+}
+
+fn parse_number_or_default(input: &str, default: f64) -> Option<f64> {
+    let input = input.trim();
+
+    if input.is_empty() {
+        Some(default)
+    } else {
+        input.parse().ok()
+    }
 }
