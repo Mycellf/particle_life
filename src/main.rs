@@ -351,9 +351,9 @@ async fn main() {
 
                 ui.separator();
 
-                ui.label("Edge Type:");
-
                 ui.horizontal(|ui| {
+                    ui.label("Edge Type:");
+
                     updated |= ui
                         .selectable_value(
                             &mut simulation_buffer.params.edge_type,
@@ -429,6 +429,8 @@ async fn main() {
                     simulation_buffer.params.edge_type = bouncing_value_input_buffer;
                     updated = true;
                 }
+
+                ui.separator();
 
                 // Window hiding instructions
                 ui.add_enabled(
