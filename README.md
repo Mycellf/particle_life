@@ -4,6 +4,4 @@ Each particle has a type, and each type has a different attraction value to each
 
 The simulation backend uses rayon parallelized buckets to improve performance. 
 
-I also plan to add a UI for modifying the state of the simulation. For now, `R` can be used to reset the simulation with a random state. 
-
 The camera can be moved with `WASD`, and zoomed with the scroll wheel. Press `C` to center it on the simulation. 
