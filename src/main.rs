@@ -206,7 +206,7 @@ async fn main() {
                 window = window.current_pos([20.0, 20.0]);
             }
 
-            if window_toggled || input::is_key_pressed(KeyCode::Escape) {
+            if window_toggled {
                 tps_limit_input_buffer = tps_limit_buffer;
             }
 
