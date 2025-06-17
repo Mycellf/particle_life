@@ -157,7 +157,7 @@ async fn main() {
         });
     });
 
-    let mut debug = false;
+    let mut draw_bucket_edges = false;
 
     let mut info_window = true;
 
@@ -482,7 +482,7 @@ async fn main() {
 
         // Debug view control
         if input::is_key_pressed(KeyCode::F3) {
-            debug ^= true;
+            draw_bucket_edges ^= true;
         }
 
         // Rendering
@@ -490,7 +490,7 @@ async fn main() {
         // title bar of the window is disabled.
         window::clear_background(colors::BLACK);
 
-        simulation_buffer.draw_at(vec2(0.0, 0.0), &simulation_camera, debug);
+        simulation_buffer.draw_at(vec2(0.0, 0.0), &simulation_camera, draw_bucket_edges);
 
         egui_macroquad::draw();
 
