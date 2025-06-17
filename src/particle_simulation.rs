@@ -73,11 +73,7 @@ impl ParticleSimulation {
     }
 
     pub fn step_simulation(&mut self) {
-        let wrap_edges = if let EdgeType::Wrapping = self.params.edge_type {
-            true
-        } else {
-            false
-        };
+        let wrap_edges = matches!(self.params.edge_type, EdgeType::Wrapping);
 
         let maximum_distance_squared = self.bucket_size.powi(2);
 

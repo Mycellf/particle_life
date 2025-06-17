@@ -13,7 +13,7 @@ impl<T> Matrix<T> {
     {
         Self {
             size,
-            data: std::iter::repeat(element).take(size[0] * size[1]).collect(),
+            data: std::iter::repeat_n(element, size[0] * size[1]).collect(),
         }
     }
 
