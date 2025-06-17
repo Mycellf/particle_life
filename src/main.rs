@@ -347,6 +347,7 @@ async fn main() {
                             EdgeType::Wrapping,
                             "Wrapping",
                         )
+                        .on_hover_text("Move particles touching the edge to the other side")
                         .clicked();
 
                     updated |= ui
@@ -355,6 +356,7 @@ async fn main() {
                             EdgeType::Deleting,
                             "Deleting",
                         )
+                        .on_hover_text("Destroy particles touching the edge")
                         .clicked();
 
                     updated |= ui
@@ -363,6 +365,7 @@ async fn main() {
                             bouncing_value_buffer,
                             "Bouncing",
                         )
+                        .on_hover_text("Push particles away from the edge")
                         .clicked();
                 });
 
