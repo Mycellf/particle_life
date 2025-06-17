@@ -338,7 +338,7 @@ async fn main() {
         let multiplier = if egui_hovered || egui_focused {
             0.1
         } else {
-            -0.2
+            -0.1
         };
 
         info_window_opacity += (1.0 / multiplier)
