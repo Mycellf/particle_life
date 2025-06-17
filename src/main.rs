@@ -1,7 +1,7 @@
 use macroquad::{
     camera::{self, Camera2D},
     color::colors,
-    input::{self, KeyCode},
+    input::{self, KeyCode, MouseButton},
     math::{Vec2, vec2},
     time,
     window::{self, Conf},
@@ -309,7 +309,7 @@ async fn main() {
 
                 egui_focused |= slider_focused;
 
-                if !slider_focused {
+                if !slider_focused && !input::is_mouse_button_down(MouseButton::Left) {
                     let tps_limit_input = if tps_limit_input_buffer <= *TPS_INPUT_RANGE.end() {
                         Some(tps_limit_input_buffer)
                     } else {
