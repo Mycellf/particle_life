@@ -63,6 +63,9 @@ fn new_simulation() -> ParticleSimulation {
     simulation_from_size([30, 20], 4e-3)
 }
 
+pub const WINDOW_OPACITY_HOVERED: f32 = 1.0;
+pub const WINDOW_OPACITY_UNHOVERED: f32 = 0.85;
+
 #[macroquad::main(window_conf)]
 async fn main() {
     let mut simulation = new_simulation();
@@ -151,7 +154,9 @@ async fn main() {
     simulation_thread.unwrap();
 
     let mut debug = false;
+
     let mut info_window = true;
+    let mut info_window_opacity = WINDOW_OPACITY_UNHOVERED;
 
     let mut fullscreen = false;
 
@@ -191,6 +196,7 @@ async fn main() {
 
         let mut updated = false;
         let mut egui_focused = false;
+        let mut egui_hovered = false;
 
         let mut window_toggled = false;
 
@@ -201,6 +207,24 @@ async fn main() {
 
         egui_macroquad::ui(|egui| {
             egui.set_zoom_factor(macroquad::window::screen_dpi_scale());
+
+            let base_visuals = egui::Visuals::dark();
+
+            egui.set_visuals(egui::Visuals {
+                window_shadow: egui::Shadow {
+                    color: egui::Color32::BLACK.gamma_multiply(0.0),
+                    ..base_visuals.window_shadow
+                },
+                window_fill: base_visuals.window_fill.gamma_multiply(info_window_opacity),
+                window_stroke: egui::Stroke {
+                    color: base_visuals
+                        .window_stroke
+                        .color
+                        .gamma_multiply(info_window_opacity),
+                    ..base_visuals.window_stroke
+                },
+                ..base_visuals
+            });
 
             let info_window_copy = info_window;
 
@@ -222,6 +246,8 @@ async fn main() {
                 const TPS_RANGE: RangeInclusive<usize> = 10..=240;
                 const TPS_INPUT_RANGE: RangeInclusive<usize> =
                     *TPS_RANGE.start()..=*TPS_RANGE.end() + 1;
+
+                ui.multiply_opacity(info_window_opacity);
 
                 // FPS/TPS Info
                 ui.columns(3, |columns| {
@@ -307,7 +333,22 @@ async fn main() {
                     egui::Label::new("Press F1 to show/hide this window."),
                 );
             });
+
+            egui_hovered |= egui.is_pointer_over_area();
         });
+
+        let multiplier = if egui_hovered || egui_focused {
+            0.1
+        } else {
+            -0.2
+        };
+
+        info_window_opacity += (1.0 / multiplier)
+            * time::get_frame_time()
+            * const { WINDOW_OPACITY_HOVERED - WINDOW_OPACITY_UNHOVERED };
+
+        info_window_opacity =
+            info_window_opacity.clamp(WINDOW_OPACITY_UNHOVERED, WINDOW_OPACITY_HOVERED);
 
         if !egui_focused {
             update_camera_control(

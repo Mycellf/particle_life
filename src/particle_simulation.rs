@@ -20,8 +20,8 @@ pub const PARTICLE_RADIUS: Real = 5.0;
 pub struct ParticleSimulation {
     buckets: Matrix<Vec<Particle>>,
     impulses: Matrix<Vec<[Real; 2]>>,
-    type_data: ParticleTypeData,
     bucket_size: Real,
+    pub type_data: ParticleTypeData,
     pub params: ParticleSimulationParams,
     pub metadata: ParticleSimulationMetadata,
 }
@@ -59,14 +59,13 @@ impl ParticleSimulation {
         buckets: [usize; 2],
         params: ParticleSimulationParams,
         metadata: ParticleSimulationMetadata,
-        num_types: usize,
-        attraction_intensity: Real,
+        type_data: ParticleTypeData,
     ) -> Self {
         Self {
             buckets: Matrix::from_element(buckets, Vec::new()),
             impulses: Matrix::from_element(buckets, Vec::new()),
-            type_data: ParticleTypeData::new_random(num_types, attraction_intensity),
             bucket_size,
+            type_data,
             params,
             metadata,
         }
@@ -355,6 +354,12 @@ impl ParticleSimulation {
         let index = self.bucket_index_of_position(particle.position)?;
         self.buckets[index].push(particle);
         Some(())
+    }
+
+    pub fn clear_particles(&mut self) {
+        for bucket in &mut self.buckets.data {
+            bucket.clear();
+        }
     }
 
     pub fn add_random_particles(&mut self, count: usize) {
