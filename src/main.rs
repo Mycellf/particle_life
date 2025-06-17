@@ -240,7 +240,7 @@ async fn main() {
                             .custom_parser(|input| {
                                 let input = input.trim();
                                 if input == "unlimited" {
-                                    Some(241.0)
+                                    Some(*TPS_INPUT_RANGE.end() as f64)
                                 } else {
                                     input.parse().ok()
                                 }
@@ -271,6 +271,8 @@ async fn main() {
                         simulation_buffer.metadata.tps_limit = tps_limit_input;
                     }
                 }
+
+                ui.separator();
 
                 // Window hiding instructions
                 ui.add_enabled(
