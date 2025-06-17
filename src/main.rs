@@ -274,7 +274,7 @@ async fn main() {
                             .text("TPS Limit")
                             .custom_parser(|input| {
                                 let input = input.trim();
-                                if input == "unlimited" {
+                                if ["unlimited", "infinity", "∞", "max"].contains(&input) {
                                     Some(*TPS_INPUT_RANGE.end() as f64)
                                 } else {
                                     input.parse().ok()
