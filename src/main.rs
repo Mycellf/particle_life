@@ -1,5 +1,6 @@
 use macroquad::{
     camera::{self, Camera2D},
+    color::colors,
     input::{self, KeyCode},
     math::{Vec2, vec2},
     time,
@@ -199,7 +200,7 @@ async fn main() {
 
             let mut window = egui::Window::new("Info")
                 .open(&mut info_window)
-                .collapsible(false)
+                .title_bar(false)
                 .resizable(false);
 
             if window_toggled && info_window_copy {
@@ -328,6 +329,10 @@ async fn main() {
         }
 
         // Rendering
+        // WORKAROUND: egui-macroquad prevents the screen from being cleared automatically when the
+        // title bar of the window is disabled.
+        window::clear_background(colors::BLACK);
+
         simulation_buffer.draw_at(vec2(0.0, 0.0), &simulation_camera, debug);
 
         egui_macroquad::draw();
