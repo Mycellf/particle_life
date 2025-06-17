@@ -74,7 +74,6 @@ async fn main() {
     let simulation_thread_builder = thread::Builder::new().name("simulation".to_owned());
     let simulation_thread = simulation_thread_builder.spawn(move || {
         let mut total_time = None;
-        let mut tick_time = None;
 
         loop {
             let start = Instant::now();
@@ -99,48 +98,44 @@ async fn main() {
                 }
             }
 
+            let mut updated = false;
+
             let frame_end = (simulation.metadata.tps_limit)
                 .map(|tps_limit| start + Duration::from_secs_f64(1.0 / tps_limit as f64));
 
             {
-                let updated;
-
-                if simulation.metadata.is_active {
-                    updated = true;
+                if simulation.metadata.is_active || simulation.metadata.steps > 0 {
                     simulation.step_simulation();
-
                     simulation.metadata.total_time = total_time;
-                    simulation.metadata.tick_time = tick_time;
-                } else {
-                    updated = !matches!(
-                        simulation.metadata,
-                        ParticleSimulationMetadata {
-                            total_time: None,
-                            tick_time: None,
-                            ..
-                        }
-                    );
+                    simulation.metadata.tick_time = Some(start.elapsed());
 
-                    simulation.metadata.total_time = None;
-                    simulation.metadata.tick_time = None;
-                }
+                    if simulation.metadata.is_active {
+                        simulation.metadata.steps = 0;
+                    } else {
+                        simulation.metadata.steps -= 1;
+                    }
 
-                if updated {
-                    // Send simulation data to render thread
-                    simulation_tx
-                        .send(simulation.clone())
-                        .expect("Error sending simulation to user input");
+                    updated = true;
                 }
             }
 
-            tick_time = Some(start.elapsed());
+            if updated {
+                // Send simulation data to render thread
+                simulation_tx
+                    .send(simulation.clone())
+                    .expect("Error sending simulation to user input");
+            }
 
             if let Some(frame_end) = frame_end {
                 // Wait if there's time left
                 thread::sleep(frame_end - Instant::now());
             }
 
-            total_time = Some(start.elapsed());
+            if simulation.metadata.is_active {
+                total_time = Some(start.elapsed());
+            } else {
+                total_time = None;
+            }
         }
     });
 
@@ -261,9 +256,24 @@ async fn main() {
                                 .on_hover_text("Milliseconds per tick");
                         }
                     } else {
-                        columns[2]
-                            .colored_label(columns[1].visuals().warn_fg_color, "Paused")
-                            .on_hover_text("Space to unpause");
+                        columns[1].label("Paused").on_hover_text("Space to unpause");
+
+                        let step_label =
+                            if let Some(tick_time) = simulation_buffer.metadata.tick_time {
+                                let mspt = tick_time.as_millis();
+
+                                format!("Step ({mspt}ms)")
+                            } else {
+                                "Step".to_owned()
+                            };
+
+                        if columns[2]
+                            .add(egui::Label::new(step_label).sense(egui::Sense::click()))
+                            .clicked()
+                        {
+                            simulation_buffer.metadata.steps += 1;
+                            updated = true;
+                        }
                     }
                 });
 
@@ -439,7 +449,18 @@ async fn main() {
             }
 
             if input::is_key_pressed(KeyCode::Space) {
-                simulation_buffer.metadata.is_active ^= true;
+                if input::is_key_down(KeyCode::LeftShift) || input::is_key_down(KeyCode::RightShift)
+                {
+                    simulation_buffer.metadata.steps += 1;
+                } else {
+                    if simulation_buffer.metadata.is_active {
+                        simulation_buffer.metadata.tick_time = None;
+                    }
+                    simulation_buffer.metadata.total_time = None;
+
+                    simulation_buffer.metadata.is_active ^= true;
+                }
+
                 updated = true;
             }
         }
