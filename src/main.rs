@@ -1,13 +1,13 @@
 use macroquad::{
     camera::{self, Camera2D},
-    color::colors,
     input::{self, KeyCode},
     math::{Vec2, vec2},
-    text, time,
+    time,
     window::{self, Conf},
 };
 use particle_simulation::{EdgeType, ParticleSimulation, ParticleSimulationParams, Real};
 use std::{
+    ops::RangeInclusive,
     sync::mpsc,
     thread,
     time::{Duration, Instant},
@@ -53,7 +53,7 @@ fn simulation_from_size(size: [usize; 2], density: Real) -> ParticleSimulation {
 }
 
 fn new_simulation() -> ParticleSimulation {
-    simulation_from_size([60, 40], 4e-3)
+    simulation_from_size([30, 20], 4e-3)
 }
 
 #[macroquad::main(window_conf)]
@@ -63,12 +63,6 @@ async fn main() {
     let mut simulation_camera = Camera2D::default();
     center_camera(&mut simulation_camera, simulation.size_vec2());
 
-    let mut info_camera = Camera2D {
-        zoom: [1.0, 2.0 / 800.0].into(),
-        offset: [-1.0, 1.0].into(),
-        ..Default::default()
-    };
-
     let (simulation_tx, simulation_rx) = mpsc::channel::<ParticleSimulation>();
     let (user_input_tx, user_input_rx) = mpsc::channel::<ParticleSimulation>();
 
@@ -76,7 +70,9 @@ async fn main() {
 
     let simulation_thread_builder = thread::Builder::new().name("simulation".to_owned());
     let simulation_thread = simulation_thread_builder.spawn(move || {
-        let mut time = None;
+        let mut total_time = None;
+        let mut tick_time = None;
+
         loop {
             let start = Instant::now();
 
@@ -106,26 +102,44 @@ async fn main() {
                 .map(|tps_limit| start + Duration::from_secs_f64(1.0 / tps_limit as f64));
 
             {
+                let updated;
+
                 if simulation.metadata.is_active {
+                    updated = true;
                     simulation.step_simulation();
 
-                    simulation.metadata.tick_time = time;
+                    simulation.metadata.total_time = total_time;
+                    simulation.metadata.tick_time = tick_time;
+                } else {
+                    updated = !matches!(
+                        simulation.metadata,
+                        ParticleSimulationMetadata {
+                            total_time: None,
+                            tick_time: None,
+                            ..
+                        }
+                    );
 
+                    simulation.metadata.total_time = None;
+                    simulation.metadata.tick_time = None;
+                }
+
+                if updated {
                     // Send simulation data to render thread
                     simulation_tx
                         .send(simulation.clone())
                         .expect("Error sending simulation to user input");
-                } else {
-                    simulation.metadata.tick_time = None;
                 }
             }
+
+            tick_time = Some(Instant::now() - start);
 
             if let Some(frame_end) = frame_end {
                 // Wait if there's time left
                 thread::sleep(frame_end - Instant::now());
             }
 
-            time = Some(Instant::now() - start);
+            total_time = Some(Instant::now() - start);
         }
     });
 
@@ -134,6 +148,8 @@ async fn main() {
     let mut debug_level: u8 = 0;
     let mut fullscreen = false;
 
+    let mut tps_limit_buffer = simulation_buffer.metadata.tps_limit.unwrap();
+
     // Rendering and user input
     loop {
         if input::is_key_pressed(KeyCode::F11) {
@@ -141,14 +157,6 @@ async fn main() {
             window::set_fullscreen(fullscreen);
             input::show_mouse(!fullscreen);
         }
-
-        // Camera control
-        update_camera_control(
-            &mut simulation_camera,
-            simulation_buffer.size_vec2(),
-            1.0,
-            1.1,
-        );
 
         // Setup camera
         update_camera_aspect_ratio(&mut simulation_camera);
@@ -176,6 +184,7 @@ async fn main() {
         }
 
         let mut updated = false;
+        let mut egui_focused = false;
 
         egui_macroquad::ui(|egui| {
             egui.set_zoom_factor(macroquad::window::screen_dpi_scale());
@@ -183,30 +192,81 @@ async fn main() {
             egui::Window::new("Settings")
                 .resizable(false)
                 .show(egui, |ui| {
-                    ui.label("Test");
+                    const TPS_RANGE: RangeInclusive<usize> = 10..=240;
+                    const TPS_INPUT_RANGE: RangeInclusive<usize> =
+                        *TPS_RANGE.start()..=*TPS_RANGE.end() + 1;
+
+                    // FPS/TPS Info
+                    ui.label(format!("FPS: {}", time::get_fps()));
+
+                    if let ParticleSimulationMetadata {
+                        total_time: Some(total_time),
+                        tick_time: Some(tick_time),
+                        ..
+                    } = simulation_buffer.metadata
+                    {
+                        let tps = (1.0 / total_time.as_secs_f64()).round();
+                        let mspt = tick_time.as_millis();
+
+                        ui.label(format!("TPS: {tps}"));
+                        ui.label(format!("MSPT: {mspt}"));
+                    }
+
+                    // TPS Slider
+                    egui_focused |= ui
+                        .add(
+                            egui::Slider::new(&mut tps_limit_buffer, TPS_INPUT_RANGE)
+                                .text("TPS Limit")
+                                .custom_parser(|input| {
+                                    let input = input.trim();
+                                    if input == "unlimited" {
+                                        Some(241.0)
+                                    } else {
+                                        input.parse().ok()
+                                    }
+                                })
+                                .custom_formatter(|number, _| {
+                                    if number <= 240.0 {
+                                        (number as usize).to_string()
+                                    } else {
+                                        "unlimited".to_owned()
+                                    }
+                                }),
+                        )
+                        .has_focus();
+
+                    let tps_limit_input = if tps_limit_buffer <= *TPS_INPUT_RANGE.end() {
+                        Some(tps_limit_buffer)
+                    } else {
+                        None
+                    };
+
+                    if tps_limit_input != simulation_buffer.metadata.tps_limit {
+                        updated = true;
+                        simulation_buffer.metadata.tps_limit = tps_limit_input;
+                    }
                 });
         });
 
-        if input::is_key_pressed(KeyCode::Space) {
-            simulation_buffer.metadata.is_active ^= true;
-            updated = true;
-        }
+        if !egui_focused {
+            update_camera_control(
+                &mut simulation_camera,
+                simulation_buffer.size_vec2(),
+                1.0,
+                1.1,
+            );
 
-        if input::is_key_pressed(KeyCode::R) {
-            let mut new_simulation = new_simulation();
-            new_simulation.metadata = simulation_buffer.metadata;
-            simulation_buffer = new_simulation;
-            updated = true;
-        }
+            if input::is_key_pressed(KeyCode::Space) {
+                simulation_buffer.metadata.is_active ^= true;
+                updated = true;
+            }
 
-        if input::is_key_pressed(KeyCode::L) {
-            simulation_buffer.metadata.tps_limit = if simulation_buffer.metadata.tps_limit.is_none()
-            {
-                ParticleSimulationMetadata::default().tps_limit
-            } else {
-                None
-            };
-            updated = true;
+            if input::is_key_pressed(KeyCode::R) {
+                let mut new_simulation = new_simulation();
+                new_simulation.metadata = simulation_buffer.metadata;
+                simulation_buffer = new_simulation;
+                updated = true;
+            }
         }
 
         if updated {
@@ -243,32 +303,6 @@ async fn main() {
 
         // Rendering
         simulation_buffer.draw_at(vec2(0.0, 0.0), &simulation_camera, debug_level > 1);
-
-        // Draw debug
-        if debug_level > 0 {
-            update_camera_aspect_ratio(&mut info_camera);
-            camera::set_camera(&info_camera);
-            text::draw_text(
-                &format!("FPS: {}", time::get_fps()),
-                4.0,
-                24.0,
-                32.0,
-                colors::WHITE,
-            );
-
-            if let Some(tick_time) = simulation_buffer.metadata.tick_time {
-                let tps = (1.0 / tick_time.as_secs_f64()).round();
-                text::draw_text(&format!("TPS: {tps}"), 4.0, 50.0, 32.0, colors::WHITE);
-
-                let tps_message = if let Some(tps_limit) = simulation_buffer.metadata.tps_limit {
-                    &format!("target: {tps_limit}")
-                } else {
-                    "unlimited"
-                };
-
-                text::draw_text(tps_message, 4.0, 76.0, 32.0, colors::WHITE);
-            }
-        }
 
         egui_macroquad::draw();
 
