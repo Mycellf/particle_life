@@ -401,6 +401,7 @@ async fn main() {
                             .clamping(egui::SliderClamping::Never)
                             .text("Bounce multiplier"),
                     )
+                    .on_hover_text("Amount of velocity retained when bouncing")
                     .has_focus();
 
                 if *multiplier < 0.0 {
@@ -414,6 +415,7 @@ async fn main() {
                             .clamping(egui::SliderClamping::Never)
                             .text("Bounce pushback"),
                     )
+                    .on_hover_text("Amount of velocity added when bouncing")
                     .has_focus();
 
                 egui_focused |= slider_focused;
