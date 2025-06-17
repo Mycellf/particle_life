@@ -151,6 +151,7 @@ async fn main() {
     let mut fullscreen = false;
 
     let mut tps_limit_buffer = simulation_buffer.metadata.tps_limit.unwrap();
+    let mut tps_limit_input_buffer = tps_limit_buffer;
 
     // Rendering and user input
     loop {
@@ -188,12 +189,19 @@ async fn main() {
         let mut updated = false;
         let mut egui_focused = false;
 
-        if input::is_key_pressed(KeyCode::Escape) {
+        if input::is_key_pressed(KeyCode::Escape)
+            && !input::is_key_down(KeyCode::LeftShift)
+            && !input::is_key_down(KeyCode::RightShift)
+        {
             settings ^= true;
         }
 
         egui_macroquad::ui(|egui| {
             egui.set_zoom_factor(macroquad::window::screen_dpi_scale());
+
+            if !settings || input::is_key_down(KeyCode::Escape) {
+                tps_limit_input_buffer = tps_limit_buffer;
+            }
 
             if !settings {
                 return;
@@ -223,9 +231,9 @@ async fn main() {
                 }
 
                 // TPS Slider
-                egui_focused |= ui
+                let slider_focused = ui
                     .add(
-                        egui::Slider::new(&mut tps_limit_buffer, TPS_INPUT_RANGE)
+                        egui::Slider::new(&mut tps_limit_input_buffer, TPS_INPUT_RANGE)
                             .text("TPS Limit")
                             .custom_parser(|input| {
                                 let input = input.trim();
@@ -245,15 +253,21 @@ async fn main() {
                     )
                     .has_focus();
 
-                let tps_limit_input = if tps_limit_buffer <= *TPS_INPUT_RANGE.end() {
-                    Some(tps_limit_buffer)
-                } else {
-                    None
-                };
+                egui_focused |= slider_focused;
 
-                if tps_limit_input != simulation_buffer.metadata.tps_limit {
-                    updated = true;
-                    simulation_buffer.metadata.tps_limit = tps_limit_input;
+                if !slider_focused {
+                    let tps_limit_input = if tps_limit_input_buffer <= *TPS_INPUT_RANGE.end() {
+                        Some(tps_limit_input_buffer)
+                    } else {
+                        None
+                    };
+
+                    if tps_limit_input != simulation_buffer.metadata.tps_limit {
+                        tps_limit_buffer = tps_limit_input_buffer;
+
+                        updated = true;
+                        simulation_buffer.metadata.tps_limit = tps_limit_input;
+                    }
                 }
 
                 // Window hiding instructions
