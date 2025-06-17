@@ -287,7 +287,7 @@ async fn main() {
                 // Window hiding instructions
                 ui.add_enabled(
                     false,
-                    egui::Label::new("Press escape to show/hide this window"),
+                    egui::Label::new("Press escape to show/hide this window."),
                 );
             });
         });
