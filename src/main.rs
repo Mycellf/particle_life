@@ -400,9 +400,9 @@ async fn main() {
                         enable_bouncing_editor,
                         egui::Slider::new(multiplier, 0.0..=1.0)
                             .clamping(egui::SliderClamping::Never)
-                            .text("Bounce multiplier"),
+                            .text("Bounce velocity multiplier"),
                     )
-                    .on_hover_text("Amount of velocity retained when bouncing")
+                    .on_hover_text("Multiplied before additional velocity is applied")
                     .has_focus();
 
                 if *multiplier < 0.0 {
@@ -414,9 +414,9 @@ async fn main() {
                         enable_bouncing_editor,
                         egui::Slider::new(pushback, 0.0..=10.0)
                             .clamping(egui::SliderClamping::Never)
-                            .text("Bounce pushback"),
+                            .text("Bounce additional velocity"),
                     )
-                    .on_hover_text("Amount of velocity added when bouncing")
+                    .on_hover_text("Added after the multiplier is applied")
                     .has_focus();
 
                 egui_focused |= slider_focused;
