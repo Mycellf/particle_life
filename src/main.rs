@@ -33,10 +33,6 @@ fn simulation_from_size(size: [usize; 2], density: Real) -> ParticleSimulation {
         size,
         ParticleSimulationParams {
             edge_type: EdgeType::Wrapping,
-            // edge_type: EdgeType::Bouncing {
-            //     multiplier: 1.0,
-            //     pushback: 2.5,
-            // },
             prevent_particle_ejecting: true,
         },
         ParticleSimulationMetadata::default(),
@@ -169,6 +165,12 @@ async fn main() {
 
     let mut tps_limit_buffer = simulation_buffer.metadata.tps_limit.unwrap();
     let mut tps_limit_input_buffer = tps_limit_buffer;
+
+    let mut bouncing_value_buffer = EdgeType::Bouncing {
+        multiplier: 1.0,
+        pushback: 2.5,
+    };
+    let mut bouncing_value_input_buffer = bouncing_value_buffer;
 
     // Rendering and user input
     loop {
@@ -329,8 +331,6 @@ async fn main() {
                     }
                 }
 
-                ui.separator();
-
                 // Buttons
                 ui.horizontal(|ui| {
                     if ui.button("Clear").clicked() {
@@ -348,6 +348,85 @@ async fn main() {
                         updated = true;
                     }
                 });
+
+                ui.separator();
+
+                ui.label("Edge Type:");
+
+                ui.horizontal(|ui| {
+                    updated |= ui
+                        .selectable_value(
+                            &mut simulation_buffer.params.edge_type,
+                            EdgeType::Wrapping,
+                            "Wrapping",
+                        )
+                        .clicked();
+
+                    updated |= ui
+                        .selectable_value(
+                            &mut simulation_buffer.params.edge_type,
+                            EdgeType::Deleting,
+                            "Deleting",
+                        )
+                        .clicked();
+
+                    updated |= ui
+                        .selectable_value(
+                            &mut simulation_buffer.params.edge_type,
+                            bouncing_value_buffer,
+                            "Bouncing",
+                        )
+                        .clicked();
+                });
+
+                let enable_bouncing_editor = matches!(
+                    simulation_buffer.params.edge_type,
+                    EdgeType::Bouncing { .. }
+                );
+
+                let EdgeType::Bouncing {
+                    multiplier,
+                    pushback,
+                } = &mut bouncing_value_input_buffer
+                else {
+                    unreachable!();
+                };
+
+                let mut slider_focused = false;
+
+                slider_focused |= ui
+                    .add_enabled(
+                        enable_bouncing_editor,
+                        egui::Slider::new(multiplier, 0.0..=1.0)
+                            .clamping(egui::SliderClamping::Never)
+                            .text("Bounce multiplier"),
+                    )
+                    .has_focus();
+
+                if *multiplier < 0.0 {
+                    *multiplier = 0.0;
+                }
+
+                slider_focused |= ui
+                    .add_enabled(
+                        enable_bouncing_editor,
+                        egui::Slider::new(pushback, 0.0..=10.0)
+                            .clamping(egui::SliderClamping::Never)
+                            .text("Bounce pushback"),
+                    )
+                    .has_focus();
+
+                egui_focused |= slider_focused;
+
+                if enable_bouncing_editor
+                    && !slider_focused
+                    && !input::is_mouse_button_down(MouseButton::Left)
+                    && bouncing_value_input_buffer != simulation_buffer.params.edge_type
+                {
+                    bouncing_value_buffer = bouncing_value_input_buffer;
+                    simulation_buffer.params.edge_type = bouncing_value_input_buffer;
+                    updated = true;
+                }
 
                 // Window hiding instructions
                 ui.add_enabled(

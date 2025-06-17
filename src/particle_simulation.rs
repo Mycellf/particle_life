@@ -500,8 +500,7 @@ impl Particle {
     }
 }
 
-#[allow(unused)]
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum EdgeType {
     Wrapping,
     Bouncing { multiplier: Real, pushback: Real },
