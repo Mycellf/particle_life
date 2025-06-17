@@ -231,6 +231,7 @@ async fn main() {
 
             if window_toggled {
                 tps_limit_input_buffer = tps_limit_buffer;
+                bouncing_value_input_buffer = bouncing_value_buffer;
             }
 
             window.show(egui, |ui| {
