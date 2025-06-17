@@ -207,9 +207,13 @@ async fn main() {
                 return;
             }
 
-            let window = egui::Window::new("Info")
+            let mut window = egui::Window::new("Info")
                 .collapsible(false)
                 .resizable(false);
+
+            if input::is_key_pressed(KeyCode::Escape) {
+                window = window.current_pos([20.0, 20.0]);
+            }
 
             window.show(egui, |ui| {
                 const TPS_RANGE: RangeInclusive<usize> = 10..=240;
