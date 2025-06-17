@@ -269,6 +269,7 @@ async fn main() {
 
                         if columns[2]
                             .add(egui::Label::new(step_label).sense(egui::Sense::click()))
+                            .on_hover_text("Shift + Space to step")
                             .clicked()
                         {
                             simulation_buffer.metadata.steps += 1;
