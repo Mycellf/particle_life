@@ -212,18 +212,11 @@ async fn main() {
         egui_macroquad::ui(|egui| {
             egui.set_zoom_factor(window::screen_dpi_scale());
 
-            let info_window_copy = info_window;
-
-            let mut window = egui::Window::new("Info")
+            let window = egui::Window::new("Info")
                 .open(&mut info_window)
                 .title_bar(false)
                 .resizable(false)
-                .movable(false)
                 .max_width(340.0);
-
-            if window_toggled && info_window_copy {
-                window = window.current_pos([20.0, 20.0]);
-            }
 
             if window_toggled {
                 tps_limit_input_buffer = tps_limit_buffer;
@@ -243,12 +236,9 @@ async fn main() {
                 };
 
                 ui.columns(num_columns, |columns| {
-                    let mut clicked = false;
-
-                    clicked |= columns[0]
+                    columns[0]
                         .label(format!("FPS: {}", time::get_fps()))
-                        .on_hover_text("Frames per second")
-                        .clicked();
+                        .on_hover_text("Frames per second");
 
                     if simulation_buffer.metadata.is_active {
                         if let ParticleSimulationMetadata {
@@ -258,10 +248,9 @@ async fn main() {
                         {
                             let tps = (1.0 / total_time.as_secs_f64()).round();
 
-                            clicked |= columns[1]
+                            columns[1]
                                 .label(format!("TPS: {tps}"))
-                                .on_hover_text("Ticks per Second")
-                                .clicked();
+                                .on_hover_text("Ticks per Second");
                         }
 
                         if let ParticleSimulationMetadata {
@@ -271,21 +260,14 @@ async fn main() {
                         {
                             let mspt = tick_time.as_millis();
 
-                            clicked |= columns[2]
+                            columns[2]
                                 .label(format!("MSPT: {mspt}"))
-                                .on_hover_text("Milliseconds per tick")
-                                .clicked();
+                                .on_hover_text("Milliseconds per tick");
                         }
                     } else {
-                        clicked |= columns[1]
+                        columns[1]
                             .colored_label(columns[1].visuals().warn_fg_color, "Paused")
-                            .on_hover_text("Space to unpause")
-                            .clicked()
-                    }
-
-                    if clicked {
-                        simulation_buffer.metadata.is_active ^= true;
-                        updated = true;
+                            .on_hover_text("Space to unpause");
                     }
                 });
 
