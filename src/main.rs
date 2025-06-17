@@ -175,7 +175,6 @@ async fn main() {
         if input::is_key_pressed(KeyCode::F11) {
             fullscreen ^= true;
             window::set_fullscreen(fullscreen);
-            input::show_mouse(!fullscreen);
         }
 
         // Setup camera
@@ -353,6 +352,12 @@ async fn main() {
             });
 
             egui_hovered |= egui.is_pointer_over_area();
+
+            egui.set_cursor_icon(if fullscreen && !info_window {
+                egui::CursorIcon::None
+            } else {
+                egui::CursorIcon::Default
+            });
         });
 
         if !egui_focused {
