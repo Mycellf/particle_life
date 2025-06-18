@@ -196,24 +196,44 @@ async fn main() {
         }
 
         let mut updated = false;
+
         let mut egui_focused = false;
         let mut egui_hovered = false;
 
         let mut window_toggled = false;
+        let mut reset_position = false;
 
         if input::is_key_pressed(KeyCode::F1) {
-            info_window ^= true;
-            window_toggled = true;
+            let shift =
+                input::is_key_down(KeyCode::LeftShift) || input::is_key_down(KeyCode::RightShift);
+
+            if shift {
+                reset_position = true;
+            }
+
+            if !shift || !info_window {
+                info_window ^= true;
+                window_toggled = true;
+            }
         }
 
         egui_macroquad::ui(|egui| {
-            egui.set_zoom_factor(window::screen_dpi_scale());
+            const WINDOW_WIDTH: f32 = 350.0;
+            const MIN_SCREEN_WIDTH: f32 = WINDOW_WIDTH + 14.0;
 
-            let window = egui::Window::new("Info")
+            let scale = (window::screen_width() / MIN_SCREEN_WIDTH).min(1.0);
+            egui.set_zoom_factor(window::screen_dpi_scale() * scale);
+
+            let mut window = egui::Window::new("Info")
                 .open(&mut info_window)
                 .title_bar(false)
                 .resizable(false)
-                .max_width(340.0);
+                .max_width(WINDOW_WIDTH)
+                .min_width(WINDOW_WIDTH);
+
+            if reset_position {
+                window = window.current_pos([16.0, 16.0]);
+            }
 
             if window_toggled {
                 tps_limit_input_buffer = tps_limit_buffer;
@@ -300,8 +320,6 @@ async fn main() {
                             }),
                     )
                     .has_focus();
-
-                egui_focused |= slider_focused;
 
                 if !slider_focused && !input::is_mouse_button_down(MouseButton::Left) {
                     let tps_limit_input = if tps_limit_input_buffer <= *TPS_INPUT_RANGE.end() {
@@ -410,8 +428,6 @@ async fn main() {
                     .on_hover_text("Added after the multiplier is applied")
                     .has_focus();
 
-                egui_focused |= slider_focused;
-
                 if enable_bouncing_editor
                     && !slider_focused
                     && !input::is_mouse_button_down(MouseButton::Left)
@@ -431,7 +447,8 @@ async fn main() {
                 );
             });
 
-            egui_hovered |= egui.is_pointer_over_area();
+            egui_focused |= egui.wants_keyboard_input();
+            egui_hovered |= egui.wants_pointer_input();
 
             egui.set_cursor_icon(if fullscreen && !info_window {
                 egui::CursorIcon::None
