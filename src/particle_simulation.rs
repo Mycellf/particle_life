@@ -443,6 +443,11 @@ impl Particle {
         self.position[0] += self.velocity[0] / 2.0;
         self.position[1] += self.velocity[1] / 2.0;
 
+        debug_assert!(self.velocity[0].is_finite(), "nonfinite x velocity");
+        debug_assert!(self.velocity[1].is_finite(), "nonfinite y velocity");
+        debug_assert!(self.position[0].is_finite(), "nonfinite x position");
+        debug_assert!(self.position[1].is_finite(), "nonfinite y position");
+
         self.velocity = self.velocity.map(|x| x * 0.9);
     }
 
