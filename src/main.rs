@@ -103,20 +103,18 @@ async fn main() {
             let frame_end = (simulation.metadata.tps_limit)
                 .map(|tps_limit| start + Duration::from_secs_f64(1.0 / tps_limit as f64));
 
-            {
-                if simulation.metadata.is_active || simulation.metadata.steps > 0 {
-                    simulation.step_simulation();
-                    simulation.metadata.total_time = total_time;
-                    simulation.metadata.tick_time = Some(start.elapsed());
+            if simulation.metadata.is_active || simulation.metadata.steps > 0 {
+                simulation.step_simulation();
+                simulation.metadata.total_time = total_time;
+                simulation.metadata.tick_time = Some(start.elapsed());
 
-                    if simulation.metadata.is_active {
-                        simulation.metadata.steps = 0;
-                    } else {
-                        simulation.metadata.steps -= 1;
-                    }
-
-                    updated = true;
+                if simulation.metadata.is_active {
+                    simulation.metadata.steps = 0;
+                } else {
+                    simulation.metadata.steps -= 1;
                 }
+
+                updated = true;
             }
 
             if updated {
@@ -126,12 +124,12 @@ async fn main() {
                     .expect("Error sending simulation to user input");
             }
 
-            if let Some(frame_end) = frame_end {
-                // Wait if there's time left
-                thread::sleep(frame_end - Instant::now());
-            }
-
             if simulation.metadata.is_active {
+                if let Some(frame_end) = frame_end {
+                    // Wait if there's time left
+                    thread::sleep(frame_end - Instant::now());
+                }
+
                 total_time = Some(start.elapsed());
             } else {
                 total_time = None;
