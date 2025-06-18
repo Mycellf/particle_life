@@ -339,6 +339,8 @@ async fn main() {
                     }
                 }
 
+                ui.separator();
+
                 // Buttons
                 ui.horizontal(|ui| {
                     if ui.button("Clear").clicked() {
