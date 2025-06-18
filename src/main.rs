@@ -180,6 +180,7 @@ async fn main() {
         loop {
             match simulation_rx.try_recv() {
                 Ok(simulation) => {
+                    // Reject updates from outdated simulations
                     if simulation.metadata.update_id >= simulation_buffer.metadata.update_id {
                         simulation_buffer = simulation;
                     }
