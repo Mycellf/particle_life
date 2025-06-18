@@ -38,7 +38,7 @@ fn simulation_from_size(size: [usize; 2], density: Real) -> ParticleSimulation {
             prevent_particle_ejecting: true,
         },
         ParticleSimulationMetadata::default(),
-        ParticleTypeData::new_random(50, 5.0),
+        ParticleTypeData::new_random(NUM_PARTICLE_TYPES, PARTICLE_ATTRACTION_SCALE),
     );
     if density > 0.0 {
         fill_simulation_with_particles(&mut particle_simulation, density);
@@ -56,8 +56,12 @@ fn fill_simulation_with_particles(particle_simulation: &mut ParticleSimulation, 
 }
 
 fn new_simulation() -> ParticleSimulation {
-    simulation_from_size([15, 10], 4e-3)
+    simulation_from_size([15, 10], PARTICLE_DENSITY)
 }
+
+const PARTICLE_DENSITY: Real = 4e-3;
+const PARTICLE_ATTRACTION_SCALE: Real = 5.0;
+const NUM_PARTICLE_TYPES: usize = 50;
 
 #[macroquad::main(window_conf)]
 async fn main() {
@@ -343,12 +347,15 @@ async fn main() {
                     }
 
                     if ui.button("Randomize Attractions").clicked() {
-                        simulation_buffer.type_data = ParticleTypeData::new_random(50, 5.0);
+                        simulation_buffer.type_data = ParticleTypeData::new_random(
+                            NUM_PARTICLE_TYPES,
+                            PARTICLE_ATTRACTION_SCALE,
+                        );
                         updated = true;
                     }
 
                     if ui.button("Fill to Density").clicked() {
-                        fill_simulation_with_particles(&mut simulation_buffer, 4e-3);
+                        fill_simulation_with_particles(&mut simulation_buffer, PARTICLE_DENSITY);
                         updated = true;
                     }
                 });
