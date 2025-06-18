@@ -241,12 +241,16 @@ impl ParticleSimulation {
                     } => {
                         let direction = particle.constrain_to_size(self.size());
                         if direction[0] != 0.0 {
-                            particle.velocity[0] =
-                                (particle.velocity[0].abs() * multiplier + pushback) * direction[0];
+                            particle.velocity[0] = (particle.velocity[0].abs() * multiplier
+                                + pushback)
+                                .clamp(Real::MIN, Real::MAX)
+                                * direction[0];
                         }
                         if direction[1] != 0.0 {
-                            particle.velocity[1] =
-                                (particle.velocity[1].abs() * multiplier + pushback) * direction[1];
+                            particle.velocity[1] = (particle.velocity[1].abs() * multiplier
+                                + pushback)
+                                .clamp(Real::MIN, Real::MAX)
+                                * direction[1];
                         }
                         self.insert_particle(particle);
                     }
