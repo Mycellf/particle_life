@@ -341,6 +341,11 @@ async fn main() {
 
                 ui.separator();
 
+                ui.label(format!(
+                    "Particles: {}",
+                    simulation_buffer.metadata.num_particles
+                ));
+
                 // Buttons
                 ui.horizontal(|ui| {
                     if ui.button("Clear").clicked() {

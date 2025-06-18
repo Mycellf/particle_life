@@ -40,6 +40,7 @@ pub struct ParticleSimulationMetadata {
     pub tick_time: Option<Duration>,
     pub tps_limit: Option<usize>,
     pub update_id: u64,
+    pub num_particles: usize,
 }
 
 impl Default for ParticleSimulationMetadata {
@@ -51,6 +52,7 @@ impl Default for ParticleSimulationMetadata {
             tick_time: None,
             tps_limit: Some(30),
             update_id: 0,
+            num_particles: 0,
         }
     }
 }
@@ -227,6 +229,8 @@ impl ParticleSimulation {
             if let Some(index) = index {
                 self.buckets[index].push(particle);
             } else {
+                self.metadata.num_particles -= 1;
+
                 // Edge handling
                 match self.params.edge_type {
                     EdgeType::Wrapping => {
@@ -370,12 +374,16 @@ impl ParticleSimulation {
     }
 
     pub fn insert_particle(&mut self, particle: Particle) -> Option<()> {
+        self.metadata.num_particles += 1;
+
         let index = self.bucket_index_of_position(particle.position)?;
         self.buckets[index].push(particle);
         Some(())
     }
 
     pub fn clear_particles(&mut self) {
+        self.metadata.num_particles = 0;
+
         for bucket in &mut self.buckets.data {
             bucket.clear();
         }
