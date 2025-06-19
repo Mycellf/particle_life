@@ -382,11 +382,15 @@ async fn main() {
 
                 let slider_focused = ui
                     .add(
-                        egui::Slider::new(&mut attraction_scale_input_buffer, 0.0..=25.0)
-                            .text("Force Scale"),
+                        egui::Slider::new(&mut attraction_scale_input_buffer, 0.0..=10.0)
+                            .text("Force Scale")
+                            .clamping(egui::SliderClamping::Never),
                     )
                     .on_hover_text("The scale applied to forces between particles")
                     .has_focus();
+
+                attraction_scale_input_buffer =
+                    attraction_scale_input_buffer.clamp(-1000.0, 1000.0);
 
                 if !slider_focused
                     && !input::is_mouse_button_down(MouseButton::Left)
