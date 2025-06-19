@@ -330,7 +330,7 @@ async fn main() {
                     .has_focus();
 
                 if !slider_focused && !input::is_mouse_button_down(MouseButton::Left) {
-                    let tps_limit_input = if tps_limit_input_buffer <= *TPS_INPUT_RANGE.end() {
+                    let tps_limit_input = if tps_limit_input_buffer <= *TPS_RANGE.end() {
                         Some(tps_limit_input_buffer)
                     } else {
                         None
