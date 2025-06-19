@@ -29,7 +29,7 @@ fn window_conf() -> Conf {
 }
 
 fn simulation_from_size(size: [usize; 2], density: Real) -> ParticleSimulation {
-    let bucket_size: Real = 200.0;
+    let bucket_size: Real = 100.0;
     let mut particle_simulation = ParticleSimulation::new(
         bucket_size,
         size,
@@ -56,12 +56,12 @@ fn fill_simulation_with_particles(particle_simulation: &mut ParticleSimulation, 
 }
 
 fn new_simulation() -> ParticleSimulation {
-    simulation_from_size([15, 10], PARTICLE_DENSITY)
+    simulation_from_size([30, 20], PARTICLE_DENSITY)
 }
 
 const PARTICLE_DENSITY: Real = 4e-3;
-const PARTICLE_ATTRACTION_SCALE: Real = 2.0;
-const NUM_PARTICLE_TYPES: usize = 100;
+const PARTICLE_ATTRACTION_SCALE: Real = 5.0;
+const NUM_PARTICLE_TYPES: usize = 25;
 
 #[macroquad::main(window_conf)]
 async fn main() {
