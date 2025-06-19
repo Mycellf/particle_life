@@ -167,6 +167,9 @@ async fn main() {
     };
     let mut bouncing_value_input_buffer = bouncing_value_buffer;
 
+    let mut attraction_scale_buffer = simulation_buffer.type_data.attraction_scale();
+    let mut attraction_scale_input_buffer = attraction_scale_buffer;
+
     // Rendering and user input
     loop {
         if input::is_key_pressed(KeyCode::F11) {
@@ -241,6 +244,7 @@ async fn main() {
             if window_toggled {
                 tps_limit_input_buffer = tps_limit_buffer;
                 bouncing_value_input_buffer = bouncing_value_buffer;
+                attraction_scale_input_buffer = attraction_scale_buffer;
             }
 
             window.show(egui, |ui| {
@@ -341,23 +345,15 @@ async fn main() {
 
                 ui.separator();
 
+                // Particle editor
                 ui.label(format!(
                     "Particles: {}",
                     simulation_buffer.metadata.num_particles
                 ));
 
-                // Buttons
                 ui.horizontal(|ui| {
                     if ui.button("Clear").clicked() {
                         simulation_buffer.clear_particles();
-                        updated = true;
-                    }
-
-                    if ui.button("Randomize Attractions").clicked() {
-                        simulation_buffer.type_data = ParticleTypeData::new_random(
-                            NUM_PARTICLE_TYPES,
-                            PARTICLE_ATTRACTION_SCALE,
-                        );
                         updated = true;
                     }
 
@@ -366,6 +362,42 @@ async fn main() {
                         updated = true;
                     }
                 });
+
+                ui.separator();
+
+                // Particle type editor
+                ui.label(format!(
+                    "Colors: {}",
+                    simulation_buffer.type_data.num_types()
+                ));
+
+                if ui.button("Randomize Attractions").clicked() {
+                    simulation_buffer.type_data = ParticleTypeData::new_random(
+                        NUM_PARTICLE_TYPES,
+                        simulation_buffer.type_data.attraction_scale(),
+                    );
+                    updated = true;
+                }
+
+                let slider_focused = ui
+                    .add(
+                        egui::Slider::new(&mut attraction_scale_input_buffer, 0.0..=25.0)
+                            .text("Force Scale"),
+                    )
+                    .on_hover_text("The scale applied to forces between particles")
+                    .has_focus();
+
+                if !slider_focused
+                    && !input::is_mouse_button_down(MouseButton::Left)
+                    && attraction_scale_buffer != attraction_scale_input_buffer
+                {
+                    attraction_scale_buffer = attraction_scale_input_buffer;
+
+                    simulation_buffer
+                        .type_data
+                        .rescale_attractions(attraction_scale_buffer);
+                    updated = true;
+                }
 
                 ui.separator();
 

@@ -541,29 +541,53 @@ pub enum EdgeType {
 
 #[derive(Clone, Debug)]
 pub struct ParticleTypeData {
-    types: Matrix<Real>,
+    base_attractions: Matrix<Real>,
+    scaled_attractions: Matrix<Real>,
+    attraction_scale: Real,
     colors: Box<[Color]>,
 }
 
 impl ParticleTypeData {
-    pub fn new_random(num_types: usize, attraction_intensity: Real) -> Self {
+    pub fn new_random(num_types: usize, attraction_scale: Real) -> Self {
         let mut rng = rand::rng();
-        let types = Matrix::from_fn([num_types; 2], |_| {
-            rng.random_range(-attraction_intensity..=attraction_intensity)
-        });
+        let base_attractions = Matrix::from_fn([num_types; 2], |_| rng.random_range(-1.0..=1.0));
+        let scaled_attractions =
+            ParticleTypeData::scale_attractions(&base_attractions, attraction_scale);
         let colors = (0..num_types)
             .map(|typ| typ as f32 / num_types as f32)
             .map(|hue| color::hsl_to_rgb(hue, 1.0, 0.5))
             .collect();
-        Self { types, colors }
+        Self {
+            base_attractions,
+            scaled_attractions,
+            attraction_scale,
+            colors,
+        }
+    }
+
+    pub fn rescale_attractions(&mut self, attraction_scale: Real) {
+        self.attraction_scale = attraction_scale;
+
+        self.scaled_attractions =
+            ParticleTypeData::scale_attractions(&self.base_attractions, attraction_scale);
+    }
+
+    fn scale_attractions(base_attractions: &Matrix<Real>, scale: Real) -> Matrix<Real> {
+        Matrix::from_fn(base_attractions.size, |index| {
+            base_attractions[index] * scale
+        })
     }
 
     pub fn get_attraction(&self, source: usize, target: usize) -> Real {
-        self.types[[source, target]]
+        self.scaled_attractions[[source, target]]
     }
 
     pub fn num_types(&self) -> usize {
-        self.types.size[0]
+        self.base_attractions.size[0]
+    }
+
+    pub fn attraction_scale(&self) -> Real {
+        self.attraction_scale
     }
 }
 
