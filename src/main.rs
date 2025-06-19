@@ -110,6 +110,7 @@ async fn main() {
 
             if simulation.metadata.is_active || simulation.metadata.steps > 0 {
                 simulation.step_simulation();
+
                 simulation.metadata.total_time = total_time;
                 simulation.metadata.tick_time = Some(start_update.elapsed());
                 simulation.metadata.send_time = send_time;
