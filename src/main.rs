@@ -78,9 +78,10 @@ async fn main() {
     let simulation_thread_builder = thread::Builder::new().name("simulation".to_owned());
     let simulation_thread = simulation_thread_builder.spawn(move || {
         let mut total_time = None;
+        let mut send_time = None;
 
         loop {
-            let start = Instant::now();
+            let start_update = Instant::now();
 
             // Copy latest simulation to buffer
             loop {
@@ -105,12 +106,13 @@ async fn main() {
             let mut updated = false;
 
             let frame_end = (simulation.metadata.tps_limit)
-                .map(|tps_limit| start + Duration::from_secs_f64(1.0 / tps_limit as f64));
+                .map(|tps_limit| start_update + Duration::from_secs_f64(1.0 / tps_limit as f64));
 
             if simulation.metadata.is_active || simulation.metadata.steps > 0 {
                 simulation.step_simulation();
                 simulation.metadata.total_time = total_time;
-                simulation.metadata.tick_time = Some(start.elapsed());
+                simulation.metadata.tick_time = Some(start_update.elapsed());
+                simulation.metadata.send_time = send_time;
 
                 if simulation.metadata.is_active {
                     simulation.metadata.steps = 0;
@@ -123,9 +125,13 @@ async fn main() {
 
             if updated {
                 // Send simulation data to render thread
+                let start_send = Instant::now();
+
                 simulation_tx
                     .send(simulation.clone())
                     .expect("Error sending simulation to user input");
+
+                send_time = Some(start_send.elapsed());
             }
 
             if simulation.metadata.is_active {
@@ -134,7 +140,7 @@ async fn main() {
                     thread::sleep(frame_end - Instant::now());
                 }
 
-                total_time = Some(start.elapsed());
+                total_time = Some(start_update.elapsed());
             } else {
                 total_time = None;
             }
@@ -264,7 +270,7 @@ async fn main() {
                             ..
                         } = simulation_buffer.metadata
                         {
-                            let tps = (1.0 / total_time.as_secs_f64()).round();
+                            let tps = (1.0 / total_time.as_secs_f64()).ceil();
 
                             columns[1]
                                 .label(format!("TPS: {tps}"))
@@ -276,20 +282,27 @@ async fn main() {
                             ..
                         } = simulation_buffer.metadata
                         {
-                            let mspt = tick_time.as_millis();
-
-                            columns[2]
-                                .label(format!("MSPT: {mspt}"))
+                            let mspt_label_result = columns[2]
+                                .label(format!("MSPT: {}", tick_time.as_millis()))
                                 .on_hover_text("Milliseconds per tick");
+
+                            if let ParticleSimulationMetadata {
+                                send_time: Some(send_time),
+                                ..
+                            } = simulation_buffer.metadata
+                            {
+                                mspt_label_result.on_hover_text(format!(
+                                    "Send Time: {}ms",
+                                    send_time.as_millis()
+                                ));
+                            }
                         }
                     } else {
                         columns[1].label("Paused").on_hover_text("Space to unpause");
 
                         let step_label =
                             if let Some(tick_time) = simulation_buffer.metadata.tick_time {
-                                let mspt = tick_time.as_millis();
-
-                                format!("Step ({mspt}ms)")
+                                format!("Step ({}ms)", tick_time.as_millis())
                             } else {
                                 "Step".to_owned()
                             };
