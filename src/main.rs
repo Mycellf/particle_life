@@ -248,7 +248,7 @@ async fn main() {
             }
 
             window.show(egui, |ui| {
-                const TPS_RANGE: RangeInclusive<usize> = 10..=240;
+                const TPS_RANGE: RangeInclusive<usize> = 5..=240;
                 const TPS_INPUT_RANGE: RangeInclusive<usize> =
                     *TPS_RANGE.start()..=*TPS_RANGE.end() + 1;
 
