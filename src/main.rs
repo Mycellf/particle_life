@@ -309,7 +309,7 @@ async fn main() {
                 let slider_focused = ui
                     .add(
                         egui::Slider::new(&mut tps_limit_input_buffer, TPS_INPUT_RANGE)
-                            .text("TPS Limit")
+                            .text("Simulation Speed")
                             .custom_parser(|input| {
                                 let input = input.trim();
                                 if ["unlimited", "infinity", "∞", "max"].contains(&input) {
@@ -320,12 +320,13 @@ async fn main() {
                             })
                             .custom_formatter(|number, _| {
                                 if number <= 240.0 {
-                                    (number as usize).to_string()
+                                    format!("{} TPS", number as usize)
                                 } else {
                                     "unlimited".to_owned()
                                 }
                             }),
                     )
+                    .on_hover_text("Maximum ticks per second of the simulation")
                     .has_focus();
 
                 if !slider_focused && !input::is_mouse_button_down(MouseButton::Left) {
