@@ -366,6 +366,18 @@ impl ParticleSimulation {
         material::gl_use_default_material();
     }
 
+    pub fn randomize_particles_above_type(&mut self, num_types: usize) {
+        let mut rng = rand::rng();
+
+        for bucket in &mut self.buckets.data {
+            for particle in bucket {
+                if particle.typ >= num_types {
+                    particle.typ = rng.random_range(0..num_types);
+                }
+            }
+        }
+    }
+
     pub fn size(&self) -> [Real; 2] {
         self.buckets.size.map(|x| x as Real * self.bucket_size)
     }
@@ -552,13 +564,30 @@ pub struct ParticleTypeData {
 impl ParticleTypeData {
     pub fn new_random(num_types: usize, attraction_scale: Real) -> Self {
         let mut rng = rand::rng();
-        let base_attractions = Matrix::from_fn([num_types; 2], |_| rng.random_range(-1.0..=1.0));
+        ParticleTypeData::new_from_fn(num_types, attraction_scale, |_| {
+            rng.random_range(-1.0..=1.0)
+        })
+    }
+
+    #[must_use]
+    pub fn resize(&self, num_types: usize) -> Self {
+        let mut rng = rand::rng();
+        ParticleTypeData::new_from_fn(num_types, self.attraction_scale(), |index| {
+            self.base_attractions
+                .get(index)
+                .copied()
+                .unwrap_or_else(|| rng.random_range(-1.0..=1.0))
+        })
+    }
+
+    pub fn new_from_fn<F>(num_types: usize, attraction_scale: Real, function: F) -> Self
+    where
+        F: FnMut([usize; 2]) -> f64,
+    {
+        let base_attractions = Matrix::from_fn([num_types; 2], function);
         let scaled_attractions =
             ParticleTypeData::scale_attractions(&base_attractions, attraction_scale);
-        let colors = (0..num_types)
-            .map(|typ| typ as f32 / num_types as f32)
-            .map(|hue| color::hsl_to_rgb(hue, 1.0, 0.5))
-            .collect();
+        let colors = ParticleTypeData::generate_colors(num_types);
         Self {
             base_attractions,
             scaled_attractions,
@@ -578,6 +607,13 @@ impl ParticleTypeData {
         Matrix::from_fn(base_attractions.size, |index| {
             base_attractions[index] * scale
         })
+    }
+
+    fn generate_colors(num_types: usize) -> Box<[Color]> {
+        (0..num_types)
+            .map(|typ| typ as f32 / num_types as f32)
+            .map(|hue| color::hsl_to_rgb(hue, 1.0, 0.5))
+            .collect()
     }
 
     pub fn get_attraction(&self, source: usize, target: usize) -> Real {

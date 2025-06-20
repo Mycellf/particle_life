@@ -38,7 +38,7 @@ fn simulation_from_size(size: [usize; 2], density: Real) -> ParticleSimulation {
             prevent_particle_ejecting: true,
         },
         ParticleSimulationMetadata::default(),
-        ParticleTypeData::new_random(NUM_PARTICLE_TYPES, PARTICLE_ATTRACTION_SCALE),
+        ParticleTypeData::new_random(25, 5.0),
     );
     if density > 0.0 {
         fill_simulation_with_particles(&mut particle_simulation, density);
@@ -60,8 +60,6 @@ fn new_simulation() -> ParticleSimulation {
 }
 
 const PARTICLE_DENSITY: Real = 4e-3;
-const PARTICLE_ATTRACTION_SCALE: Real = 5.0;
-const NUM_PARTICLE_TYPES: usize = 25;
 
 #[macroquad::main(window_conf)]
 async fn main() {
@@ -192,6 +190,7 @@ async fn main() {
     let mut bouncing_value_input_buffer = bouncing_value_buffer;
 
     let mut attractions_input_buffer = None;
+    let mut num_types_input_buffer = simulation_buffer.type_data.num_types();
 
     let mut attraction_scale_buffer = simulation_buffer.type_data.attraction_scale();
     let mut attraction_scale_input_buffer = attraction_scale_buffer;
@@ -272,6 +271,7 @@ async fn main() {
                 bouncing_value_input_buffer = bouncing_value_buffer;
                 attraction_scale_input_buffer = attraction_scale_buffer;
                 attractions_input_buffer = None;
+                num_types_input_buffer = simulation_buffer.type_data.num_types();
             }
 
             window.show(egui, |ui| {
@@ -407,10 +407,29 @@ async fn main() {
                 ui.separator();
 
                 // Particle type editor
-                ui.label(format!(
-                    "Colors: {}",
-                    simulation_buffer.type_data.num_types()
-                ));
+                let result = ui
+                    .horizontal(|ui| {
+                        ui.label("Colors:");
+
+                        ui.add(egui::DragValue::new(&mut num_types_input_buffer))
+                    })
+                    .inner;
+
+                num_types_input_buffer = num_types_input_buffer.clamp(1, 250);
+
+                if !result.has_focus()
+                    && !result.is_pointer_button_down_on()
+                    && num_types_input_buffer != simulation_buffer.type_data.num_types()
+                {
+                    simulation_buffer.type_data =
+                        simulation_buffer.type_data.resize(num_types_input_buffer);
+
+                    simulation_buffer.randomize_particles_above_type(num_types_input_buffer);
+
+                    attractions_input_buffer = None;
+
+                    updated = true;
+                }
 
                 let slider_focused = ui
                     .add(
@@ -437,14 +456,26 @@ async fn main() {
                 }
 
                 egui::CollapsingHeader::new("Particle Attractions").show(ui, |ui| {
-                    if ui.button("Randomize").clicked() {
-                        simulation_buffer.type_data = ParticleTypeData::new_random(
-                            NUM_PARTICLE_TYPES,
-                            simulation_buffer.type_data.attraction_scale(),
-                        );
-                        attractions_input_buffer = None;
-                        updated = true;
-                    }
+                    ui.horizontal(|ui| {
+                        if ui.button("Randomize").clicked() {
+                            simulation_buffer.type_data = ParticleTypeData::new_random(
+                                simulation_buffer.type_data.num_types(),
+                                simulation_buffer.type_data.attraction_scale(),
+                            );
+                            attractions_input_buffer = None;
+                            updated = true;
+                        }
+
+                        if ui.button("Clear").clicked() {
+                            simulation_buffer.type_data = ParticleTypeData::new_from_fn(
+                                simulation_buffer.type_data.num_types(),
+                                simulation_buffer.type_data.attraction_scale(),
+                                |_| 0.0,
+                            );
+                            attractions_input_buffer = None;
+                            updated = true;
+                        }
+                    });
 
                     ui.add_space(5.0);
 
