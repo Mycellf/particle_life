@@ -492,7 +492,7 @@ async fn main() {
                                         updated = true;
                                     }
 
-                                    // Only generate the ui if it needs to be there
+                                    // Only generate the tooltip if it could possibly be shown
                                     if result.hovered() {
                                         result.on_hover_ui(|ui| {
                                             ui.horizontal(|ui| {
