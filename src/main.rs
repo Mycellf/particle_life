@@ -393,7 +393,13 @@ async fn main() {
                     }
 
                     if ui.button("Fill to Density").clicked() {
-                        fill_simulation_with_particles(&mut simulation_buffer, PARTICLE_DENSITY);
+                        let area = simulation_buffer.size()[0] * simulation_buffer.size()[1];
+                        let particle_count = (area * PARTICLE_DENSITY) as usize;
+
+                        simulation_buffer.add_random_particles(
+                            particle_count.saturating_sub(simulation_buffer.metadata.num_particles),
+                        );
+
                         updated = true;
                     }
                 });
