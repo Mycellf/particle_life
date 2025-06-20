@@ -455,11 +455,11 @@ async fn main() {
                     updated = true;
                 }
 
-                egui::CollapsingHeader::new("Particle Attractions").show(ui, |ui| {
+                egui::CollapsingHeader::new("Color Attractions").show(ui, |ui| {
                     egui::ScrollArea::both().max_height(250.0).show(ui, |ui| {
                         ui.spacing_mut().item_spacing = [5.0, 10.0].into();
 
-                        egui::Grid::new("Particle Attractions").show(ui, |ui| {
+                        egui::Grid::new("Color Attractions").show(ui, |ui| {
                             if attractions_input_buffer.is_none() {
                                 attractions_input_buffer =
                                     Some(simulation_buffer.type_data.base_attractions.clone());
