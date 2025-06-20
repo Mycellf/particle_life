@@ -168,6 +168,9 @@ async fn main() {
 
             style.visuals.window_shadow.offset = [0, 0];
             style.visuals.window_shadow.spread = 15;
+
+            style.visuals.striped = true;
+            style.spacing.scroll = egui::style::ScrollStyle::solid();
         });
     });
 
@@ -185,6 +188,8 @@ async fn main() {
         pushback: 2.5,
     };
     let mut bouncing_value_input_buffer = bouncing_value_buffer;
+
+    let mut attractions_input_buffer = None;
 
     let mut attraction_scale_buffer = simulation_buffer.type_data.attraction_scale();
     let mut attraction_scale_input_buffer = attraction_scale_buffer;
@@ -264,6 +269,7 @@ async fn main() {
                 tps_limit_input_buffer = tps_limit_buffer;
                 bouncing_value_input_buffer = bouncing_value_buffer;
                 attraction_scale_input_buffer = attraction_scale_buffer;
+                attractions_input_buffer = None;
             }
 
             window.show(egui, |ui| {
@@ -403,6 +409,7 @@ async fn main() {
                         NUM_PARTICLE_TYPES,
                         simulation_buffer.type_data.attraction_scale(),
                     );
+                    attractions_input_buffer = None;
                     updated = true;
                 }
 
@@ -429,6 +436,80 @@ async fn main() {
                         .rescale_attractions(attraction_scale_buffer);
                     updated = true;
                 }
+
+                egui::CollapsingHeader::new("Particle Attractions").show(ui, |ui| {
+                    egui::ScrollArea::both().max_height(200.0).show(ui, |ui| {
+                        egui::Grid::new("Particle Attractions").show(ui, |ui| {
+                            if attractions_input_buffer.is_none() {
+                                attractions_input_buffer =
+                                    Some(simulation_buffer.type_data.base_attractions.clone());
+                            }
+
+                            let attractions_input_buffer =
+                                attractions_input_buffer.as_mut().unwrap();
+
+                            ui.label("");
+                            for (i, &color) in simulation_buffer.type_data.colors.iter().enumerate()
+                            {
+                                ui.add(egui::Label::new(rich_text_from_color(
+                                    color,
+                                    &(i + 1).to_string(),
+                                )));
+                            }
+
+                            for (i, &color) in simulation_buffer.type_data.colors.iter().enumerate()
+                            {
+                                ui.end_row();
+
+                                let row_label = rich_text_from_color(color, &(i + 1).to_string());
+
+                                ui.add(egui::Label::new(row_label.clone()));
+
+                                for j in 0..simulation_buffer.type_data.colors.len() {
+                                    let value =
+                                        simulation_buffer.type_data.base_attractions[[i, j]];
+                                    let value_input = &mut attractions_input_buffer[[i, j]];
+
+                                    let result = ui.add(
+                                        egui::DragValue::new(value_input)
+                                            .speed(0.01)
+                                            .max_decimals(3),
+                                    );
+
+                                    *value_input = value_input.clamp(-100.0, 100.0);
+
+                                    if !result.has_focus()
+                                        && !result.is_pointer_button_down_on()
+                                        && value != *value_input
+                                    {
+                                        simulation_buffer.type_data.base_attractions[[i, j]] =
+                                            *value_input;
+
+                                        simulation_buffer.type_data.scaled_attractions[[i, j]] =
+                                            *value_input
+                                                * simulation_buffer.type_data.attraction_scale();
+
+                                        updated = true;
+                                    }
+
+                                    // Only generate the ui if it needs to be there
+                                    if result.hovered() {
+                                        result.on_hover_ui(|ui| {
+                                            ui.horizontal(|ui| {
+                                                ui.add(egui::Label::new(row_label.clone()));
+
+                                                ui.add(egui::Label::new(rich_text_from_color(
+                                                    simulation_buffer.type_data.colors[j],
+                                                    &(j + 1).to_string(),
+                                                )));
+                                            });
+                                        });
+                                    }
+                                }
+                            }
+                        });
+                    });
+                });
 
                 ui.separator();
 
@@ -517,10 +598,7 @@ async fn main() {
                 ui.separator();
 
                 // Window hiding instructions
-                ui.add_enabled(
-                    false,
-                    egui::Label::new("Press F1 to show/hide this window."),
-                );
+                ui.weak("Press F1 to show/hide this window.");
             });
 
             egui_focused |= egui.wants_keyboard_input();
@@ -538,7 +616,7 @@ async fn main() {
                 &mut simulation_camera,
                 simulation_buffer.size_vec2(),
                 1.0,
-                1.1,
+                if egui_hovered { 1.0 } else { 1.1 },
             );
 
             if input::is_key_pressed(KeyCode::C) || input::is_key_pressed(KeyCode::Home) {
@@ -639,4 +717,30 @@ fn parse_number_or_default(input: &str, default: f64) -> Option<f64> {
     } else {
         input.parse().ok()
     }
+}
+
+fn rich_text_from_color(color: macroquad::color::Color, text: &str) -> egui::RichText {
+    egui::RichText::new(text)
+        .background_color(macroquad_color_to_egui(color))
+        .color(
+            if is_bright(color) {
+                egui::Visuals::light()
+            } else {
+                egui::Visuals::dark()
+            }
+            .strong_text_color(),
+        )
+}
+
+fn macroquad_color_to_egui(color: macroquad::color::Color) -> egui::Color32 {
+    let bytes: [u8; 4] = color.into();
+
+    egui::Color32::from_rgba_premultiplied(bytes[0], bytes[1], bytes[2], bytes[3])
+}
+
+fn is_bright(color: macroquad::color::Color) -> bool {
+    let luminance_squared =
+        0.299 * color.r.powi(2) + 0.587 * color.g.powi(2) + 0.144 * color.b.powi(2);
+
+    luminance_squared > 0.5 * 0.5
 }

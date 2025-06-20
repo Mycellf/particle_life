@@ -543,10 +543,10 @@ pub enum EdgeType {
 
 #[derive(Clone, Debug)]
 pub struct ParticleTypeData {
-    base_attractions: Matrix<Real>,
-    scaled_attractions: Matrix<Real>,
+    pub base_attractions: Matrix<Real>,
+    pub scaled_attractions: Matrix<Real>,
     attraction_scale: Real,
-    colors: Box<[Color]>,
+    pub colors: Box<[Color]>,
 }
 
 impl ParticleTypeData {
