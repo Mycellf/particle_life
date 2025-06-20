@@ -456,29 +456,6 @@ async fn main() {
                 }
 
                 egui::CollapsingHeader::new("Particle Attractions").show(ui, |ui| {
-                    ui.horizontal(|ui| {
-                        if ui.button("Randomize").clicked() {
-                            simulation_buffer.type_data = ParticleTypeData::new_random(
-                                simulation_buffer.type_data.num_types(),
-                                simulation_buffer.type_data.attraction_scale(),
-                            );
-                            attractions_input_buffer = None;
-                            updated = true;
-                        }
-
-                        if ui.button("Clear").clicked() {
-                            simulation_buffer.type_data = ParticleTypeData::new_from_fn(
-                                simulation_buffer.type_data.num_types(),
-                                simulation_buffer.type_data.attraction_scale(),
-                                |_| 0.0,
-                            );
-                            attractions_input_buffer = None;
-                            updated = true;
-                        }
-                    });
-
-                    ui.add_space(5.0);
-
                     egui::ScrollArea::both().max_height(250.0).show(ui, |ui| {
                         ui.spacing_mut().item_spacing = [5.0, 10.0].into();
 
@@ -551,6 +528,29 @@ async fn main() {
                                 }
                             }
                         });
+                    });
+
+                    ui.add_space(10.0);
+
+                    ui.horizontal(|ui| {
+                        if ui.button("Randomize").clicked() {
+                            simulation_buffer.type_data = ParticleTypeData::new_random(
+                                simulation_buffer.type_data.num_types(),
+                                simulation_buffer.type_data.attraction_scale(),
+                            );
+                            attractions_input_buffer = None;
+                            updated = true;
+                        }
+
+                        if ui.button("Clear").clicked() {
+                            simulation_buffer.type_data = ParticleTypeData::new_from_fn(
+                                simulation_buffer.type_data.num_types(),
+                                simulation_buffer.type_data.attraction_scale(),
+                                |_| 0.0,
+                            );
+                            attractions_input_buffer = None;
+                            updated = true;
+                        }
                     });
                 });
 
