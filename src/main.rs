@@ -465,7 +465,7 @@ async fn main() {
 
                                 ui.add(egui::Label::new(row_label.clone()));
 
-                                for j in 0..simulation_buffer.type_data.colors.len() {
+                                for j in 0..simulation_buffer.type_data.num_types() {
                                     let value =
                                         simulation_buffer.type_data.base_attractions[[i, j]];
                                     let value_input = &mut attractions_input_buffer[[i, j]];
