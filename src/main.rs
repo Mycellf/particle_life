@@ -171,6 +171,8 @@ async fn main() {
 
             style.visuals.striped = true;
             style.spacing.scroll = egui::style::ScrollStyle::solid();
+
+            style.visuals.slider_trailing_fill = true;
         });
     });
 
