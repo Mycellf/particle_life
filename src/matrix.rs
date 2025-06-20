@@ -22,7 +22,7 @@ impl<T> Matrix<T> {
         F: FnMut([usize; 2]) -> T,
     {
         let data = (0..size[0])
-            .flat_map(|i| (0..size[1]).map(move |j| [i, j]))
+            .flat_map(|i| (0..size[1]).map(move |j| [j, i]))
             .map(function)
             .collect();
         Self { size, data }
