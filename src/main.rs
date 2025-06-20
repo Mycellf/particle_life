@@ -443,6 +443,8 @@ async fn main() {
                     ui.add_space(5.0);
 
                     egui::ScrollArea::both().max_height(250.0).show(ui, |ui| {
+                        ui.spacing_mut().item_spacing = [5.0, 10.0].into();
+
                         egui::Grid::new("Particle Attractions").show(ui, |ui| {
                             if attractions_input_buffer.is_none() {
                                 attractions_input_buffer =
