@@ -404,15 +404,6 @@ async fn main() {
                     simulation_buffer.type_data.num_types()
                 ));
 
-                if ui.button("Randomize Attractions").clicked() {
-                    simulation_buffer.type_data = ParticleTypeData::new_random(
-                        NUM_PARTICLE_TYPES,
-                        simulation_buffer.type_data.attraction_scale(),
-                    );
-                    attractions_input_buffer = None;
-                    updated = true;
-                }
-
                 let slider_focused = ui
                     .add(
                         egui::Slider::new(&mut attraction_scale_input_buffer, 0.0..=10.0)
@@ -438,7 +429,18 @@ async fn main() {
                 }
 
                 egui::CollapsingHeader::new("Particle Attractions").show(ui, |ui| {
-                    egui::ScrollArea::both().max_height(200.0).show(ui, |ui| {
+                    if ui.button("Randomize").clicked() {
+                        simulation_buffer.type_data = ParticleTypeData::new_random(
+                            NUM_PARTICLE_TYPES,
+                            simulation_buffer.type_data.attraction_scale(),
+                        );
+                        attractions_input_buffer = None;
+                        updated = true;
+                    }
+
+                    ui.add_space(5.0);
+
+                    egui::ScrollArea::both().max_height(250.0).show(ui, |ui| {
                         egui::Grid::new("Particle Attractions").show(ui, |ui| {
                             if attractions_input_buffer.is_none() {
                                 attractions_input_buffer =
