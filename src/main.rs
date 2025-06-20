@@ -84,10 +84,22 @@ async fn main() {
             let start_update = Instant::now();
 
             // Copy latest simulation to buffer
+            if !simulation.metadata.is_active && simulation.metadata.steps == 0 {
+                match user_input_rx.recv() {
+                    Ok(simulation_buffer) => {
+                        if simulation_buffer.metadata.update_id >= simulation.metadata.update_id {
+                            simulation = simulation_buffer;
+                        }
+                    }
+                    Err(_) => {
+                        panic!("User input thread disconnected");
+                    }
+                }
+            }
+
             loop {
                 match user_input_rx.try_recv() {
                     Ok(simulation_buffer) => {
-                        // simulation = simulation_buffer;
                         if simulation_buffer.metadata.update_id >= simulation.metadata.update_id {
                             simulation = simulation_buffer;
                         }
