@@ -195,6 +195,8 @@ async fn main() {
     let mut attraction_scale_buffer = simulation_buffer.type_data.attraction_scale();
     let mut attraction_scale_input_buffer = attraction_scale_buffer;
 
+    let mut time_of_last_update = Instant::now();
+
     // Rendering and user input
     loop {
         if input::is_key_pressed(KeyCode::F11) {
@@ -210,6 +212,8 @@ async fn main() {
         loop {
             match simulation_rx.try_recv() {
                 Ok(simulation) => {
+                    time_of_last_update = Instant::now();
+
                     // Reject updates from outdated simulations
                     if simulation.metadata.update_id >= simulation_buffer.metadata.update_id {
                         simulation_buffer = simulation;
@@ -281,9 +285,17 @@ async fn main() {
 
                 // FPS/TPS Info
                 ui.columns(3, |columns| {
-                    columns[0]
+                    let response = columns[0]
                         .label(format!("FPS: {}", time::get_fps()))
                         .on_hover_text("Frames per second");
+
+                    let time_since_last_update = time_of_last_update.elapsed();
+                    if time_since_last_update > Duration::from_millis(100) {
+                        response.on_hover_text(format!(
+                            "Time since last update: {}ms",
+                            time_since_last_update.as_millis(),
+                        ));
+                    }
 
                     if simulation_buffer.metadata.is_active {
                         if let ParticleSimulationMetadata {
