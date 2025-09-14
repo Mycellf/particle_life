@@ -204,10 +204,6 @@ async fn main() {
             window::set_fullscreen(fullscreen);
         }
 
-        // Setup camera
-        update_camera_aspect_ratio(&mut simulation_camera);
-        camera::set_camera(&simulation_camera);
-
         // Copy latest simulation to buffer
         loop {
             match simulation_rx.try_recv() {
@@ -714,13 +710,22 @@ async fn main() {
         }
 
         // Rendering
+        let target = simulation_camera.target;
+        simulation_camera.target = vec2(0.0, 0.0);
+
+        // Setup camera
+        update_camera_aspect_ratio(&mut simulation_camera);
+        camera::set_camera(&simulation_camera);
+
         // WORKAROUND: egui-macroquad prevents the screen from being cleared automatically when the
         // title bar of the window is disabled.
         window::clear_background(colors::BLACK);
 
-        simulation_buffer.draw_at(vec2(0.0, 0.0), &simulation_camera, draw_bucket_edges);
+        simulation_buffer.draw_at(-target, &simulation_camera, draw_bucket_edges);
 
         egui_macroquad::draw();
+
+        simulation_camera.target = target;
 
         window::next_frame().await;
     }
