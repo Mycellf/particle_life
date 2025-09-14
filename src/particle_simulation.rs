@@ -290,7 +290,8 @@ impl ParticleSimulation {
             for bucket_y in 0..self.buckets.size[1] {
                 let bucket_index = [bucket_x, bucket_y];
                 let bucket_position = self.position_of_bucket(bucket_index);
-                let bucket_position = vec2(bucket_position[0] as f32, bucket_position[1] as f32);
+                let bucket_position =
+                    vec2(bucket_position[0] as f32, bucket_position[1] as f32) + position;
                 // Cull rendering of offscreen buckets
                 if bucket_position.x > max_corner.x
                     || bucket_position.y > max_corner.y
