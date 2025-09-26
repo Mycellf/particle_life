@@ -78,11 +78,6 @@ impl ParticleSimulation {
     }
 
     pub fn step_simulation(&mut self) {
-        self.move_particles();
-        self.organize_particles();
-    }
-
-    fn move_particles(&mut self) {
         let maximum_distance_squared = self.bucket_size.powi(2);
 
         // Update particle impulses
@@ -197,9 +192,8 @@ impl ParticleSimulation {
                 // Clear impulses to make cloning the simulation to the render thread faster
                 impulses.clear();
             });
-    }
 
-    fn organize_particles(&mut self) {
+        // Organize particles
         let disorganized_particles = (self.buckets.data.par_iter_mut())
             .enumerate()
             .map(|(i, bucket)| {
