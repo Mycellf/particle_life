@@ -550,6 +550,18 @@ async fn main() {
                             updated = true;
                         }
 
+                        if ui.button("Invert").clicked() {
+                            for attraction in &mut simulation_buffer.type_data.base_attractions.data
+                            {
+                                *attraction = -*attraction;
+                            }
+                            simulation_buffer.type_data.rescale_attractions(
+                                simulation_buffer.type_data.attraction_scale(),
+                            );
+                            attractions_input_buffer = None;
+                            updated = true;
+                        }
+
                         if ui.button("Clear").clicked() {
                             simulation_buffer.type_data = ParticleTypeData::new_from_fn(
                                 simulation_buffer.type_data.num_types(),
