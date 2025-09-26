@@ -185,14 +185,18 @@ impl ParticleSimulation {
             });
 
         // Move particles
-        for (bucket, impulses) in self.buckets.data.iter_mut().zip(&mut self.impulses.data) {
-            for (particle, &impulse) in bucket.iter_mut().zip(impulses.iter()) {
-                particle.apply_velocity(impulse);
-            }
+        self.buckets
+            .data
+            .par_iter_mut()
+            .zip(self.impulses.data.par_iter_mut())
+            .for_each(|(bucket, impulses)| {
+                for (particle, &impulse) in bucket.iter_mut().zip(impulses.iter()) {
+                    particle.apply_velocity(impulse);
+                }
 
-            // Clear impulses to make cloning the simulation to the render thread faster
-            impulses.clear();
-        }
+                // Clear impulses to make cloning the simulation to the render thread faster
+                impulses.clear();
+            });
     }
 
     fn organize_particles(&mut self) {
