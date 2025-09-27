@@ -8,6 +8,7 @@ use macroquad::{
 };
 use particle_simulation::{EdgeType, ParticleSimulation, ParticleSimulationParams, Real};
 use std::{
+    cmp::Ordering,
     ops::RangeInclusive,
     sync::mpsc,
     thread,
@@ -429,10 +430,22 @@ async fn main() {
                     && !result.is_pointer_button_down_on()
                     && num_types_input_buffer != simulation_buffer.type_data.num_types()
                 {
+                    let old_num_types = simulation_buffer.type_data.num_types();
+
                     simulation_buffer.type_data =
                         simulation_buffer.type_data.resize(num_types_input_buffer);
 
-                    simulation_buffer.randomize_particles_above_type(num_types_input_buffer);
+                    match num_types_input_buffer.cmp(&old_num_types) {
+                        Ordering::Less => {
+                            simulation_buffer
+                                .randomize_particles_above_type(num_types_input_buffer);
+                        }
+                        Ordering::Equal => (),
+                        Ordering::Greater => {
+                            simulation_buffer
+                                .convert_random_particles_to_types_above(old_num_types);
+                        }
+                    }
 
                     attractions_input_buffer = None;
 

@@ -377,6 +377,20 @@ impl ParticleSimulation {
         }
     }
 
+    pub fn convert_random_particles_to_types_above(&mut self, min_type: usize) {
+        let mut rng = rand::rng();
+
+        for bucket in &mut self.buckets.data {
+            for particle in bucket {
+                let new_type = rng.random_range(0..self.type_data.num_types());
+
+                if new_type >= min_type {
+                    particle.typ = new_type;
+                }
+            }
+        }
+    }
+
     pub fn size(&self) -> [Real; 2] {
         self.buckets.size.map(|x| x as Real * self.bucket_size)
     }
