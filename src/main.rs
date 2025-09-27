@@ -575,6 +575,35 @@ async fn main() {
                             updated = true;
                         }
 
+                        if ui.button("Transpose").clicked() {
+                            simulation_buffer.type_data = ParticleTypeData::new_from_fn(
+                                simulation_buffer.type_data.num_types(),
+                                simulation_buffer.type_data.attraction_scale(),
+                                |index| {
+                                    simulation_buffer.type_data.base_attractions
+                                        [[index[1], index[0]]]
+                                },
+                            );
+                            attractions_input_buffer = None;
+                            updated = true;
+                        }
+
+                        if ui.button("Equalize").clicked() {
+                            simulation_buffer.type_data = ParticleTypeData::new_from_fn(
+                                simulation_buffer.type_data.num_types(),
+                                simulation_buffer.type_data.attraction_scale(),
+                                |mut index| {
+                                    if index[0] > index[1] {
+                                        index.swap(0, 1);
+                                    }
+
+                                    simulation_buffer.type_data.base_attractions[index]
+                                },
+                            );
+                            attractions_input_buffer = None;
+                            updated = true;
+                        }
+
                         if ui.button("Clear").clicked() {
                             simulation_buffer.type_data = ParticleTypeData::new_from_fn(
                                 simulation_buffer.type_data.num_types(),
