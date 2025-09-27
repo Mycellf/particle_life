@@ -554,7 +554,11 @@ async fn main() {
                     ui.add_space(10.0);
 
                     ui.horizontal(|ui| {
-                        if ui.button("Randomize").clicked() {
+                        if ui
+                            .button("Randomize")
+                            .on_hover_text("Randomize each attraction between -1 and 1")
+                            .clicked()
+                        {
                             simulation_buffer.type_data = ParticleTypeData::new_random(
                                 simulation_buffer.type_data.num_types(),
                                 simulation_buffer.type_data.attraction_scale(),
@@ -563,7 +567,11 @@ async fn main() {
                             updated = true;
                         }
 
-                        if ui.button("Invert").clicked() {
+                        if ui
+                            .button("Invert")
+                            .on_hover_text("Negate each attraction")
+                            .clicked()
+                        {
                             for attraction in &mut simulation_buffer.type_data.base_attractions.data
                             {
                                 *attraction = -*attraction;
@@ -575,7 +583,11 @@ async fn main() {
                             updated = true;
                         }
 
-                        if ui.button("Transpose").clicked() {
+                        if ui
+                            .button("Transpose")
+                            .on_hover_text("Flip attractions around the diagonal")
+                            .clicked()
+                        {
                             simulation_buffer.type_data = ParticleTypeData::new_from_fn(
                                 simulation_buffer.type_data.num_types(),
                                 simulation_buffer.type_data.attraction_scale(),
@@ -588,7 +600,13 @@ async fn main() {
                             updated = true;
                         }
 
-                        if ui.button("Equalize").clicked() {
+                        if ui
+                            .button("Equalize")
+                            .on_hover_text(
+                                "Set attractions below the diagonal to the one on the opposite side",
+                            )
+                            .clicked()
+                        {
                             simulation_buffer.type_data = ParticleTypeData::new_from_fn(
                                 simulation_buffer.type_data.num_types(),
                                 simulation_buffer.type_data.attraction_scale(),
@@ -604,7 +622,11 @@ async fn main() {
                             updated = true;
                         }
 
-                        if ui.button("Clear").clicked() {
+                        if ui
+                            .button("Clear")
+                            .on_hover_text("Set all attractions to 0")
+                            .clicked()
+                        {
                             simulation_buffer.type_data = ParticleTypeData::new_from_fn(
                                 simulation_buffer.type_data.num_types(),
                                 simulation_buffer.type_data.attraction_scale(),
