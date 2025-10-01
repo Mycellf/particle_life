@@ -42,6 +42,7 @@ pub struct ParticleSimulationMetadata {
     pub tps_limit: Option<usize>,
     pub update_id: u64,
     pub num_particles: usize,
+    pub exponent: i32,
 }
 
 impl Default for ParticleSimulationMetadata {
@@ -55,6 +56,7 @@ impl Default for ParticleSimulationMetadata {
             tps_limit: Some(30),
             update_id: 0,
             num_particles: 0,
+            exponent: -2,
         }
     }
 }
@@ -77,7 +79,7 @@ impl ParticleSimulation {
         }
     }
 
-    pub fn step_simulation(&mut self) {
+    pub fn step_simulation<const EXPONENT: i32>(&mut self) {
         let maximum_distance_squared = self.bucket_size.powi(2);
 
         // Update particle impulses
@@ -99,7 +101,7 @@ impl ParticleSimulation {
                             continue;
                         }
 
-                        particle.update_impulse_with_particle(
+                        particle.update_impulse_with_particle::<EXPONENT>(
                             other,
                             &self.type_data,
                             &self.params,
@@ -126,7 +128,7 @@ impl ParticleSimulation {
 
                         if let Some(neighbor_bucket) = self.buckets.get(neighbor_bucket_index) {
                             for &other in neighbor_bucket {
-                                particle.update_impulse_with_particle(
+                                particle.update_impulse_with_particle::<EXPONENT>(
                                     other,
                                     &self.type_data,
                                     &self.params,
@@ -160,7 +162,7 @@ impl ParticleSimulation {
                             });
 
                             for &other in &self.buckets[wrapped_neighbor_bucket_index] {
-                                particle.update_impulse_with_particle(
+                                particle.update_impulse_with_particle::<EXPONENT>(
                                     Particle {
                                         position: [
                                             other.position[0] + offset[0],
@@ -486,7 +488,7 @@ impl Particle {
         self.velocity = self.velocity.map(|x| x * 0.9);
     }
 
-    pub fn update_impulse_with_particle(
+    pub fn update_impulse_with_particle<const EXPONENT: i32>(
         &self,
         other: Particle,
         type_data: &ParticleTypeData,
@@ -524,7 +526,12 @@ impl Particle {
         const MINIMUM_DISTANCE_SQUARED: Real = MINIMUM_DISTANCE * MINIMUM_DISTANCE;
 
         let attraction = if distance_squared > MINIMUM_DISTANCE_SQUARED {
-            type_data.get_attraction(self.typ, other.typ) / distance_squared
+            type_data.get_attraction(self.typ, other.typ)
+                * if const { EXPONENT % 2 == 0 } {
+                    distance_squared.powi(const { EXPONENT / 2 })
+                } else {
+                    distance_squared.sqrt().powi(EXPONENT)
+                }
         } else if params.prevent_particle_ejecting && distance_squared < 1.0 {
             PARTICLE_RADIUS / distance_squared.sqrt()
         } else {

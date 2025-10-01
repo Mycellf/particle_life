@@ -120,7 +120,13 @@ async fn main() {
                 .map(|tps_limit| start_update + Duration::from_secs_f64(1.0 / tps_limit as f64));
 
             if simulation.metadata.is_active || simulation.metadata.steps > 0 {
-                simulation.step_simulation();
+                match simulation.metadata.exponent {
+                    -3 => simulation.step_simulation::<-3>(),
+                    -2 => simulation.step_simulation::<-2>(),
+                    -1 => simulation.step_simulation::<-1>(),
+                    0 => simulation.step_simulation::<0>(),
+                    _ => panic!("unsupported exponent"),
+                }
 
                 simulation.metadata.total_time = total_time;
                 simulation.metadata.tick_time = Some(start_update.elapsed());
@@ -195,6 +201,9 @@ async fn main() {
 
     let mut attraction_scale_buffer = simulation_buffer.type_data.attraction_scale();
     let mut attraction_scale_input_buffer = attraction_scale_buffer;
+
+    let mut attraction_exponent_buffer = simulation_buffer.metadata.exponent + 1;
+    let mut attraction_exponent_input_buffer = attraction_exponent_buffer;
 
     let mut time_of_last_update = Instant::now();
 
@@ -473,6 +482,25 @@ async fn main() {
                     simulation_buffer
                         .type_data
                         .rescale_attractions(attraction_scale_buffer);
+                    updated = true;
+                }
+
+                let slider_focused = ui
+                    .add(
+                        egui::Slider::new(&mut attraction_exponent_input_buffer, -2..=1)
+                            .text("Force Exponent")
+                    )
+                    .on_hover_text("The exponent applied to the distance between particles")
+                    .has_focus();
+
+                if !slider_focused
+                    && !input::is_mouse_button_down(MouseButton::Left)
+                    && attraction_exponent_buffer != attraction_exponent_input_buffer
+                {
+                    attraction_exponent_buffer = attraction_exponent_input_buffer;
+
+                    simulation_buffer
+                        .metadata.exponent = attraction_exponent_buffer - 1;
                     updated = true;
                 }
 
