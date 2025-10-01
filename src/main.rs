@@ -121,10 +121,12 @@ async fn main() {
 
             if simulation.metadata.is_active || simulation.metadata.steps > 0 {
                 match simulation.metadata.exponent {
+                    -4 => simulation.step_simulation::<-4>(),
                     -3 => simulation.step_simulation::<-3>(),
                     -2 => simulation.step_simulation::<-2>(),
                     -1 => simulation.step_simulation::<-1>(),
                     0 => simulation.step_simulation::<0>(),
+                    1 => simulation.step_simulation::<1>(),
                     _ => panic!("unsupported exponent"),
                 }
 
@@ -471,7 +473,7 @@ async fn main() {
                     .has_focus();
 
                 attraction_scale_input_buffer =
-                    attraction_scale_input_buffer.clamp(-1000.0, 1000.0);
+                    attraction_scale_input_buffer.clamp(-10000.0, 10000.0);
 
                 if !slider_focused
                     && !input::is_mouse_button_down(MouseButton::Left)
@@ -487,7 +489,7 @@ async fn main() {
 
                 let slider_focused = ui
                     .add(
-                        egui::Slider::new(&mut attraction_exponent_input_buffer, -2..=1)
+                        egui::Slider::new(&mut attraction_exponent_input_buffer, -3..=2)
                             .text("Force Exponent")
                     )
                     .on_hover_text("The exponent applied to the distance between particles")
