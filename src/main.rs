@@ -30,7 +30,7 @@ fn window_conf() -> Conf {
 }
 
 fn simulation_from_size(size: [usize; 2], density: Real) -> ParticleSimulation {
-    let bucket_size: Real = 100.0;
+    let bucket_size: Real = 10.0;
     let mut particle_simulation = ParticleSimulation::new(
         bucket_size,
         size,
@@ -60,7 +60,7 @@ fn new_simulation() -> ParticleSimulation {
     simulation_from_size([30, 20], PARTICLE_DENSITY)
 }
 
-const PARTICLE_DENSITY: Real = 4e-3;
+const PARTICLE_DENSITY: Real = 0.4;
 
 #[macroquad::main(window_conf)]
 async fn main() {

@@ -14,7 +14,7 @@ use rayon::iter::{IndexedParallelIterator, IntoParallelRefMutIterator, ParallelI
 
 pub type Real = f64;
 
-pub const PARTICLE_RADIUS: Real = 5.0;
+pub const PARTICLE_RADIUS: Real = 0.5;
 
 #[derive(Clone, Debug)]
 pub struct ParticleSimulation {
@@ -268,7 +268,7 @@ impl ParticleSimulation {
 
     pub fn draw_at(&self, position: Vec2, camera: &Camera2D, draw_debug_graphics: bool) {
         // Draw border
-        let radius = (0.005 / camera.zoom[1]).max(2.0);
+        let radius = (0.005 / camera.zoom[1]).max(0.2);
         let offset = radius / 2.0 + PARTICLE_RADIUS as f32;
         let size = self.size();
         shapes::draw_rectangle_lines(
@@ -533,10 +533,10 @@ impl Particle {
                 } else {
                     distance_squared.sqrt().powi(EXPONENT)
                 }
-        } else if params.prevent_particle_ejecting && distance_squared < 1.0 {
+        } else if params.prevent_particle_ejecting && distance_squared < 0.01 {
             PARTICLE_RADIUS / distance_squared.sqrt()
         } else {
-            -PARTICLE_RADIUS / distance_squared
+            -PARTICLE_RADIUS / (distance_squared * 10.0)
         };
 
         impulse[0] += delta_position[0] * attraction;
@@ -625,6 +625,7 @@ impl ParticleTypeData {
     }
 
     fn scale_attractions(base_attractions: &Matrix<Real>, scale: Real) -> Matrix<Real> {
+        let scale = scale / 100.0;
         Matrix::from_fn(base_attractions.size, |index| {
             base_attractions[index] * scale
         })
