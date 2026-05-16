@@ -583,6 +583,8 @@ pub struct ParticleTypeData {
 }
 
 impl ParticleTypeData {
+    pub const ATTRACTION_SCALE_MULTIPLE: f64 = 0.01;
+
     pub fn new_random(num_types: usize, attraction_scale: Real) -> Self {
         let mut rng = rand::rng();
         ParticleTypeData::new_from_fn(num_types, attraction_scale, |_| {
@@ -625,7 +627,7 @@ impl ParticleTypeData {
     }
 
     fn scale_attractions(base_attractions: &Matrix<Real>, scale: Real) -> Matrix<Real> {
-        let scale = scale / 100.0;
+        let scale = scale * Self::ATTRACTION_SCALE_MULTIPLE;
         Matrix::from_fn(base_attractions.size, |index| {
             base_attractions[index] * scale
         })

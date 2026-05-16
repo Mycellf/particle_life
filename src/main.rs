@@ -558,7 +558,8 @@ async fn main() {
 
                                         simulation_buffer.type_data.scaled_attractions[[i, j]] =
                                             *value_input
-                                                * simulation_buffer.type_data.attraction_scale();
+                                                * simulation_buffer.type_data.attraction_scale()
+                                                * ParticleTypeData::ATTRACTION_SCALE_MULTIPLE;
 
                                         updated = true;
                                     }
