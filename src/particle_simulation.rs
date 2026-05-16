@@ -331,10 +331,10 @@ impl ParticleSimulation {
         // indexing step
         let mut sum = 0;
         for index in &mut indexes {
-            let temp = sum;
-            sum += *index;
-            *index = temp;
+            (sum, *index) = (sum + *index, sum);
         }
+
+        assert_eq!(sum, particles.len());
 
         // filling step
         let mut particles_sorted = vec![MaybeUninit::uninit(); particles.len()].into_boxed_slice();
