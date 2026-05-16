@@ -322,15 +322,15 @@ impl ParticleSimulation {
 
         // Sort particles (counting sort):
         // counting step
-        let mut indecies = vec![0; self.type_data.num_types()].into_boxed_slice();
+        let mut indexes = vec![0; self.type_data.num_types()].into_boxed_slice();
 
         for particle in &particles {
-            indecies[particle.typ] += 1;
+            indexes[particle.typ] += 1;
         }
 
         // indexing step
         let mut sum = 0;
-        for index in &mut indecies {
+        for index in &mut indexes {
             let temp = sum;
             sum += *index;
             *index = temp;
@@ -339,8 +339,8 @@ impl ParticleSimulation {
         // filling step
         let mut particles_sorted = vec![MaybeUninit::uninit(); particles.len()].into_boxed_slice();
         for particle in particles {
-            particles_sorted[indecies[particle.typ]].write(particle);
-            indecies[particle.typ] += 1;
+            particles_sorted[indexes[particle.typ]].write(particle);
+            indexes[particle.typ] += 1;
         }
 
         // SAFETY: The particles should be sorted correctly
