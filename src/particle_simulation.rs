@@ -1,4 +1,4 @@
-use std::{sync::LazyLock, time::Duration};
+use std::{mem::MaybeUninit, sync::LazyLock, time::Duration};
 
 use crate::matrix::Matrix;
 use macroquad::{
@@ -285,7 +285,7 @@ impl ParticleSimulation {
         let max_corner = camera.target + 1.0 / camera.zoom + PARTICLE_RADIUS as f32;
 
         // Collect particles
-        let mut particles = Vec::new();
+        let mut particles = Vec::<Particle>::new();
         for bucket_x in 0..self.buckets.size[0] {
             for bucket_y in 0..self.buckets.size[1] {
                 let bucket_index = [bucket_x, bucket_y];
@@ -316,9 +316,7 @@ impl ParticleSimulation {
                 }
 
                 // Select particles for rendering
-                for &particle in bucket {
-                    particles.push(particle);
-                }
+                particles.extend(bucket);
             }
         }
 
@@ -339,11 +337,14 @@ impl ParticleSimulation {
         }
 
         // filling step
-        let mut particles_sorted = vec![Particle::default(); particles.len()].into_boxed_slice();
+        let mut particles_sorted = vec![MaybeUninit::uninit(); particles.len()].into_boxed_slice();
         for particle in particles {
-            particles_sorted[indecies[particle.typ]] = particle;
+            particles_sorted[indecies[particle.typ]].write(particle);
             indecies[particle.typ] += 1;
         }
+
+        // SAFETY: The particles should be sorted correctly
+        let particles_sorted = unsafe { particles_sorted.assume_init() };
 
         // Draw particles
         material::gl_use_material(&PARTICLE_MATERIAL);
